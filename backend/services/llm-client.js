@@ -3,9 +3,9 @@ const path = require('path');
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 // Swap to 'llama-3.1-8b-instant' while iterating for speed;
-// use 'openai/gpt-oss-120b' for the real demo (better at following
+// use 'llama-3.3-70b-versatile' for the real demo (better at following
 // the plain-language rewrite instruction).
-const MODEL = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
+const MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
 
 const SYSTEM_PROMPT = fs.readFileSync(
   path.join(__dirname, '../prompts/reasoner-system-prompt.md'),
@@ -21,13 +21,34 @@ const SYSTEM_PROMPT = fs.readFileSync(
  * @returns {Promise<object>} shape matching the GuidanceAction fields the LLM is responsible for
  */
 async function getGuidanceFromLLM(pageState, supportLevel) {
+  // Keep validIds reading from the FULL list — this is the safety check
+  // against the LLM inventing an id, and must not be narrowed.
   const validIds = (pageState.elements || []).map((el) => el.id);
+
+  // Only send elements that are actually visible/interactable/unobscured —
+  // cuts token count drastically (89 elements -> ~23 on a real page) and
+  // is required to stay under Groq's 8000 TPM limit, not just an
+  // optimization.
+  const relevantElements = (pageState.elements || []).filter(
+    (el) => el.visible && el.interactable && !el.obscured
+  );
+
+  // Strip fields the LLM doesn't need (pixel coordinates, tag names, full
+  // state object) — the HUD needs rect, the reasoner doesn't.
+  const trimmedElements = relevantElements.map((el) => ({
+    id: el.id,
+    role: el.role,
+    label: el.label || el.placeholder || null,
+    filled: el.state.filled,
+    required: el.state.required,
+    checked: el.state.checked,
+  }));
 
   const userContent = JSON.stringify({
     goal: pageState.goal,
     accessibility_profile: pageState.accessibility_profile,
     support_level: supportLevel,
-    elements: pageState.elements,
+    elements: trimmedElements,
     history: pageState.history || [],
   });
 
@@ -91,17 +112,28 @@ async function getGuidanceFromLLM(pageState, supportLevel) {
 
 /**
  * Safe fallback used when the Groq call fails, times out, or returns
- * something invalid. Picks the first unfilled element it can find so the
- * demo never hard-crashes.
+ * something invalid. Picks the first unfilled, interactable element it can
+ * find so the demo never hard-crashes.
+ *
+ * NOTE: `state` from the real Page Mapper is an object
+ * ({ disabled, filled, required, readOnly, focused, expanded, checked,
+ * selectedOptionText }), not a string like "empty"/"filled" — match against
+ * `state.filled` accordingly.
  */
 function buildFallback(pageState, validIds) {
   const elements = pageState.elements || [];
-  const nextUnfilled = elements.find((el) => el.state === 'empty') || elements[0];
+  const candidates = elements.filter(
+    (el) => el.interactable !== false && el.state && !el.state.disabled
+  );
+  const nextUnfilled =
+    candidates.find((el) => el.state && el.state.filled === false) ||
+    candidates[0] ||
+    elements[0];
 
   return {
     targetElementId: nextUnfilled ? nextUnfilled.id : validIds[0],
     instruction: nextUnfilled
-      ? `Fill in ${nextUnfilled.label || 'this field'}.`
+      ? `Fill in ${nextUnfilled.label || nextUnfilled.placeholder || 'this field'}.`
       : 'Continue with the next step.',
     stepIndex: (pageState.history?.length || 0) + 1,
     totalSteps: elements.length,
