@@ -14,6 +14,13 @@ const tabHistory = new Map();
 // update (from the MutationObserver) can be reasoned about without asking
 // the user again.
 const tabSessions = new Map();
+// Timestamp of the last time we rendered the HUD for a tab. Rendering the
+// HUD injects DOM (overlay, spotlight, instruction card), which the
+// MutationObserver itself sees as "the page changed" -- without this
+// cooldown, render -> observer fires -> re-plan -> render again forms an
+// infinite loop.
+const lastRenderedAt = new Map();
+const RENDER_COOLDOWN_MS = 1200;
 
 function getHistory(tabId) {
   if (!tabHistory.has(tabId)) tabHistory.set(tabId, []);
@@ -62,6 +69,10 @@ async function guideFromPageState(tabId, pageState, accessibilityProfile) {
     },
     args: [guidanceAction],
   });
+
+  // Mark the render time AFTER it completes so the cooldown window starts
+  // from when the DOM mutation actually happened, not from when we started.
+  lastRenderedAt.set(tabId, Date.now());
 }
 
 /**
@@ -114,6 +125,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       // Page changed before a session was started via the popup -- ignore.
       return false;
     }
+
+    // Ignore mutations that fire immediately after our own HUD render --
+    // those are almost always the overlay/spotlight/instruction card we
+    // just injected, not a genuine user action. Without this, rendering
+    // the HUD triggers the observer, which re-plans, which renders the HUD
+    // again, forever.
+    const sinceLastRender = Date.now() - (lastRenderedAt.get(tabId) || 0);
+    if (sinceLastRender < RENDER_COOLDOWN_MS) {
+      return false;
+    }
+
     guideFromPageState(tabId, request.state, session.accessibilityProfile).catch((err) =>
       console.error('[Cognia orchestrator] auto re-plan failed:', err)
     );
@@ -124,6 +146,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const activeTabId = tabs[0].id;
       tabSessions.delete(activeTabId);
+      lastRenderedAt.delete(activeTabId);
       chrome.scripting.executeScript({
         target: { tabId: activeTabId },
         func: () => {
