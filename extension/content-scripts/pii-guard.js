@@ -1,24 +1,27 @@
 // extension/content-scripts/pii-guard.js
 
-function redactPII(htmlString) {
-  if (!htmlString) return "";
-  let cleaned = htmlString;
-  
-  cleaned = cleaned.replace(/value=["']([^"']+)["']/gi, 'value="[REDACTED]"');
-  cleaned = cleaned.replace(/<input[^>]*type=["'](password|card|cvv|ssn|text|email|tel)["'][^>]*>/gi, (match) => {
-    return match.replace(/value=["']([^"']+)["']/gi, 'value="[PROTECTED_FIELD]"');
+const SENSITIVE_LABEL_PATTERN = /ssn|social security|password|card number|cvv/i;
+const EMAIL_PATTERN = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+const PHONE_PATTERN = /\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/;
+
+function redactPageState(pageState) {
+  const redacted = JSON.parse(JSON.stringify(pageState)); // deep copy, keep structure intact
+  redacted.elements = (redacted.elements || []).map((el) => {
+    const looksSensitiveLabel = SENSITIVE_LABEL_PATTERN.test(el.label || "");
+    const looksSensitiveValue =
+      typeof el.value === "string" && (EMAIL_PATTERN.test(el.value) || PHONE_PATTERN.test(el.value));
+
+    if ((el.state === "filled" || el.state === "selected") && (looksSensitiveLabel || looksSensitiveValue)) {
+      return { ...el, value: "[REDACTED]" };
+    }
+    return el; // id, role, label, rect always untouched
   });
-  cleaned = cleaned.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[EMAIL_REDACTED]');
-  cleaned = cleaned.replace(/\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/g, '[PHONE_REDACTED]');
-  
-  return cleaned;
+  return redacted;
 }
 
-// Listen for scrub requests from the background Orchestrator
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === "SCRUB_DOM") {
-    const safeDom = redactPII(request.rawDom);
-    sendResponse({ sanitizedDom: safeDom });
+  if (request.action === "SCRUB_PAGE_STATE") {
+    sendResponse({ redactedPageState: redactPageState(request.pageState) });
   }
-  return true; 
+  return true;
 });
