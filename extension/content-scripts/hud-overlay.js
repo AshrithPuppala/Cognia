@@ -384,5 +384,5 @@
   // ---------------------------------------------------------------------
   // 10. STANDALONE TEST — comment this out once real data is wired in.
   // ---------------------------------------------------------------------
-  //renderHUD(MOCK_GUIDANCE_ACTION);
+  renderHUD(MOCK_GUIDANCE_ACTION);
 })();
