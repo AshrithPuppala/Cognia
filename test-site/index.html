@@ -302,22 +302,12 @@
   </div>
 </header>
 
-<nav class="subnav-1" aria-label="Accessibility, language and login tools">
+<nav class="subnav-1" aria-label="Accessibility and login tools">
   <div class="tool-group font-resize" role="group" aria-label="Adjust text size">
     <span id="fontSizeLabel">Text Size:</span>
     <button type="button" id="fontDecrease" aria-label="Decrease text size">A-</button>
     <button type="button" id="fontReset" aria-label="Reset text size">A</button>
     <button type="button" id="fontIncrease" aria-label="Increase text size">A+</button>
-  </div>
-  <div class="tool-group">
-    <label for="langSelect">Language</label>
-    <select id="langSelect" name="langSelect">
-      <option value="en" selected>English</option>
-      <option value="hi">हिन्दी</option>
-      <option value="ta">தமிழ்</option>
-      <option value="bn">বাংলা</option>
-      <option value="mr">मराठी</option>
-    </select>
   </div>
   <div class="tool-group">
     <div class="login-tabs" role="tablist" aria-label="Login portal selection">
@@ -1044,14 +1034,6 @@
   document.getElementById('fontReset').addEventListener('click', () => {
     fontScale = 100;
     applyFontScale();
-  });
-
-  // ==========================================================
-  // Language selector (Updates header to prove functionality)
-  // ==========================================================
-  document.getElementById('langSelect').addEventListener('change', (e) => {
-    const lang = e.target.selectedOptions[0].textContent;
-    document.getElementById('mainHeaderTitle').textContent = `e-RTO Citizen Services Portal (${lang} Mode)`;
   });
 
   // ==========================================================
