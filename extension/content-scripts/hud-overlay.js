@@ -151,22 +151,17 @@
   // 4. Overlay (dark backdrop)
   // ---------------------------------------------------------------------
   function buildOverlay(config) {
-    const overlay = document.createElement('div');
-    overlay.id = OVERLAY_ID;
-    Object.assign(overlay.style, {
-      position: 'fixed',
-      inset: '0',
-      // Transparent on purpose: the spotlight child's box-shadow is what
-      // paints all the darkness (see buildSpotlight/positionSpotlight).
-      // If this container also had an opaque background, it would sit
-      // behind the spotlight's near-transparent fill and show through
-      // as solid black with no visible cutout.
-      background: 'transparent',
-      zIndex: '2147483000',
-      pointerEvents: 'auto',
-    });
-    return overlay;
-  }
+  const overlay = document.createElement('div');
+  overlay.id = OVERLAY_ID;
+  Object.assign(overlay.style, {
+    position: 'fixed',
+    inset: '0',
+    background: 'transparent',
+    zIndex: '2147483000',
+    pointerEvents: 'auto',
+  });
+  return overlay;
+}
 
   // ---------------------------------------------------------------------
   // 5. Spotlight — "cut out" the target element region.
