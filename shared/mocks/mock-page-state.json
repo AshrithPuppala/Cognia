@@ -5,7 +5,7 @@
     {
       "id": "el_1",
       "role": "input",
-      "label": "Full Name",
+      "label": "Jurisdictional Authority",
       "state": "empty",
       "rect": [120, 200, 240, 32]
     },
