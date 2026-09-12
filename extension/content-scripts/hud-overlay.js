@@ -102,6 +102,22 @@
       );
       return;
     }
+    const advance = () => {
+    targetEl.removeEventListener('click', advance);
+    targetEl.removeEventListener('change', advance);
+    chrome.runtime.sendMessage({
+      type: 'cognia:step-completed',
+      completedElementId: guidanceAction.target_element_id,
+    });
+    teardownHUD(); // immediate visual feedback while the next step is being reasoned about
+  };
+
+  // 'click' covers buttons/links; 'change' covers selects/checkboxes/radios/text
+  // inputs actually being filled in (not just clicked into).
+  targetEl.addEventListener('click', advance, { once: true });
+  targetEl.addEventListener('change', advance, { once: true });
+
+  // ... rest of existing renderHUD code (build overlay, spotlight, card, etc.) ...
 
     const overlay = buildOverlay(config);
     const spotlight = buildSpotlight(targetEl, config);
@@ -151,22 +167,17 @@
   // 4. Overlay (dark backdrop)
   // ---------------------------------------------------------------------
   function buildOverlay(config) {
-    const overlay = document.createElement('div');
-    overlay.id = OVERLAY_ID;
-    Object.assign(overlay.style, {
-      position: 'fixed',
-      inset: '0',
-      // Transparent on purpose: the spotlight child's box-shadow is what
-      // paints all the darkness (see buildSpotlight/positionSpotlight).
-      // If this container also had an opaque background, it would sit
-      // behind the spotlight's near-transparent fill and show through
-      // as solid black with no visible cutout.
-      background: 'transparent',
-      zIndex: '2147483000',
-      pointerEvents: 'auto',
-    });
-    return overlay;
-  }
+  const overlay = document.createElement('div');
+  overlay.id = OVERLAY_ID;
+  Object.assign(overlay.style, {
+    position: 'fixed',
+    inset: '0',
+    background: 'transparent',
+    zIndex: '2147483000',
+    pointerEvents: 'none',  // changed from 'auto' — let clicks reach the real page
+  });
+  return overlay;
+}
 
   // ---------------------------------------------------------------------
   // 5. Spotlight — "cut out" the target element region.
