@@ -12,6 +12,33 @@ const SYSTEM_PROMPT = fs.readFileSync(
   'utf-8'
 );
 
+const MAX_ELEMENTS = 40;
+
+/**
+ * Keeps only elements the user could actually act on right now, and strips
+ * each one down to the handful of fields the reasoner actually needs.
+ * Real captured pages can have 80-100+ elements with deep nested `state`/
+ * `rect` objects — sending all of that blows past Groq's per-request token
+ * limit (8000 TPM on the free tier). The HUD and fallback logic still get
+ * the full untrimmed `pageState.elements` — only the LLM call uses this.
+ */
+function buildLLMElements(elements) {
+  const relevantElements = (elements || []).filter(
+    (el) => el.visible !== false && el.interactable !== false && el.obscured !== true
+  );
+
+  const cappedElements = relevantElements.slice(0, MAX_ELEMENTS);
+
+  return cappedElements.map((el) => ({
+    id: el.id,
+    role: el.role,
+    label: el.label || el.placeholder || null,
+    filled: el.state ? !!el.state.filled : undefined,
+    required: el.state ? !!el.state.required : undefined,
+    checked: el.state ? el.state.checked : undefined,
+  }));
+}
+
 /**
  * Calls Groq's chat completions endpoint in JSON mode, asking the model
  * to decide the next target element + a plain-language instruction.
@@ -22,32 +49,21 @@ const SYSTEM_PROMPT = fs.readFileSync(
  */
 async function getGuidanceFromLLM(pageState, supportLevel) {
   const validIds = (pageState.elements || []).map((el) => el.id);
-
-  const relevantElements = (pageState.elements || []).filter(
-    (el) => el.visible && el.interactable && !el.obscured
-  );
-
-  const MAX_ELEMENTS = 40;
-  const cappedElements = relevantElements.slice(0, MAX_ELEMENTS);
-
-  const trimmedElements = cappedElements.map((el) => ({
-    id: el.id,
-    role: el.role,
-    label: el.label || el.placeholder || null,
-    filled: el.state.filled,
-    required: el.state.required,
-    checked: el.state.checked,
-  }));
+  const llmElements = buildLLMElements(pageState.elements);
 
   const userContent = JSON.stringify({
     goal: pageState.goal,
     accessibility_profile: pageState.accessibility_profile,
     support_level: supportLevel,
-    elements: trimmedElements,
+    elements: llmElements,
     history: pageState.history || [],
   });
 
-  console.log(`[llm-client] sending ${trimmedElements.length} elements, ~${userContent.length} chars`);
+  // Verify the trim actually ran before every request — cheap sanity check
+  // that catches a stale/un-reloaded server before it wastes a Groq call.
+  console.log(
+    `[llm-client] sending ${llmElements.length}/${(pageState.elements || []).length} elements, payload length ${userContent.length} chars`
+  );
 
   const body = {
     model: MODEL,
@@ -90,6 +106,7 @@ async function getGuidanceFromLLM(pageState, supportLevel) {
     return buildFallback(pageState, validIds);
   }
 
+  // Defensive check: never trust an element id the model invented.
   if (!validIds.includes(parsed.target_element_id)) {
     console.warn(
       `LLM returned unknown target_element_id "${parsed.target_element_id}", falling back`
@@ -105,10 +122,16 @@ async function getGuidanceFromLLM(pageState, supportLevel) {
     dimAllExcept: [parsed.target_element_id],
   };
 }
+
+const FILLABLE_ROLES = new Set([
+  'textbox', 'combobox', 'checkbox', 'radio', 'spinbutton', 'slider', 'switch',
+]);
+
 /**
  * Safe fallback used when the Groq call fails, times out, or returns
- * something invalid. Picks the first unfilled, interactable element it can
- * find so the demo never hard-crashes.
+ * something invalid. Picks the first unfilled, on-screen, fillable-form
+ * element it can find so the demo never hard-crashes and never lands on a
+ * decorative link or an off-screen skip-nav element.
  *
  * NOTE: `state` from the real Page Mapper is an object
  * ({ disabled, filled, required, readOnly, focused, expanded, checked,
@@ -118,7 +141,13 @@ async function getGuidanceFromLLM(pageState, supportLevel) {
 function buildFallback(pageState, validIds) {
   const elements = pageState.elements || [];
   const candidates = elements.filter(
-    (el) => el.interactable !== false && el.state && !el.state.disabled
+    (el) =>
+      el.interactable !== false &&
+      el.visible !== false &&
+      el.obscured !== true &&
+      el.state &&
+      !el.state.disabled &&
+      FILLABLE_ROLES.has(el.role)
   );
   const nextUnfilled =
     candidates.find((el) => el.state && el.state.filled === false) ||
