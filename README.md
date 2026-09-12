@@ -7,14 +7,6 @@ Cognia is a Chrome extension that helps users (older adults, people with visual/
 **Track:** Making Access Easier
 **Team:** COMMITment Issues — PES University, Bengaluru
 
-| Name | SRN/USN |
-|---|---|
-| Aryan Srivastava | PES1UG25EC051 |
-| Ashrith Puppala | PES1UG25EC358 |
-| Felicia Andrew | PES1UG25EC092 |
-| Keerthana K | PES1UG25CS727 |
-
----
 
 ## 1. How the whole system fits together
 
