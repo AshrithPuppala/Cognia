@@ -91,17 +91,28 @@ async function getGuidanceFromLLM(pageState, supportLevel) {
 
 /**
  * Safe fallback used when the Groq call fails, times out, or returns
- * something invalid. Picks the first unfilled element it can find so the
- * demo never hard-crashes.
+ * something invalid. Picks the first unfilled, interactable element it can
+ * find so the demo never hard-crashes.
+ *
+ * NOTE: `state` from the real Page Mapper is an object
+ * ({ disabled, filled, required, readOnly, focused, expanded, checked,
+ * selectedOptionText }), not a string like "empty"/"filled" — match against
+ * `state.filled` accordingly.
  */
 function buildFallback(pageState, validIds) {
   const elements = pageState.elements || [];
-  const nextUnfilled = elements.find((el) => el.state === 'empty') || elements[0];
+  const candidates = elements.filter(
+    (el) => el.interactable !== false && el.state && !el.state.disabled
+  );
+  const nextUnfilled =
+    candidates.find((el) => el.state && el.state.filled === false) ||
+    candidates[0] ||
+    elements[0];
 
   return {
     targetElementId: nextUnfilled ? nextUnfilled.id : validIds[0],
     instruction: nextUnfilled
-      ? `Fill in ${nextUnfilled.label || 'this field'}.`
+      ? `Fill in ${nextUnfilled.label || nextUnfilled.placeholder || 'this field'}.`
       : 'Continue with the next step.',
     stepIndex: (pageState.history?.length || 0) + 1,
     totalSteps: elements.length,
