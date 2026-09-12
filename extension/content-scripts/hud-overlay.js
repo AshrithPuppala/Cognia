@@ -1,6 +1,9 @@
+// extension/content-scripts/hud-overlay.js
+//
 // Cognitive HUD — takes a GuidanceAction and visually transforms the page:
-// dims everything except the target element, spotlights it, and shows
-// an instruction card + step counter.
+// dims everything except the target element, spotlights it, shows an
+// instruction card + step counter, and (new) reads the instruction aloud
+// when guidanceAction.read_aloud is true.
 //
 // STANDALONE TEST MODE:
 // The hardcoded MOCK_GUIDANCE_ACTION + the call at the bottom of this file
@@ -16,16 +19,17 @@
   //    for standalone testing. Replace with the real file's contents.
   // ---------------------------------------------------------------------
   const MOCK_GUIDANCE_ACTION = {
-  step: 2,
-  total_steps: 6,
-  target_element_id: 'el_13',
-  instruction: 'Select the type of licence you want to renew.',
-  dim_all_except: ['el_13'],
-  support_level: 'normal',
-};
+    step: 2,
+    total_steps: 6,
+    target_element_id: 'el_13',
+    instruction: 'Select the type of licence you want to renew.',
+    dim_all_except: ['el_13'],
+    support_level: 'normal', // 'normal' | 'elevated' | 'high'
+    read_aloud: true,
+  };
 
   // ---------------------------------------------------------------------
-  // 2. Constants/config per support_level
+  // 2. Constants / config per support_level
   // ---------------------------------------------------------------------
   const SUPPORT_LEVEL_CONFIG = {
     normal: {
@@ -56,8 +60,17 @@
   const CARD_ID = 'cognia-hud-card';
   const STEP_ID = 'cognia-hud-step';
   const EXIT_ID = 'cognia-hud-exit';
+  const MUTE_ID = 'cognia-hud-mute';
+  const MUTE_STORAGE_KEY = '__cogniaMuted';
 
   let currentTeardown = null;
+
+  // Mute state persists across renderHUD() calls within the same page
+  // session (e.g. across Verify & Re-plan re-renders), living on window
+  // so it survives even though the overlay itself gets torn down/rebuilt.
+  if (typeof window[MUTE_STORAGE_KEY] === 'undefined') {
+    window[MUTE_STORAGE_KEY] = false;
+  }
 
   // ---------------------------------------------------------------------
   // 3. Public entry point
@@ -70,6 +83,12 @@
 
     // Clear any previous HUD before rendering a new one.
     teardownHUD();
+
+    // Always cancel any in-flight speech before deciding whether to speak
+    // again, so overlapping steps never talk over each other.
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
 
     const config = SUPPORT_LEVEL_CONFIG[guidanceAction.support_level] || SUPPORT_LEVEL_CONFIG.normal;
 
@@ -89,11 +108,13 @@
     const card = buildInstructionCard(guidanceAction, targetEl, config);
     const stepBadge = buildStepCounter(guidanceAction);
     const exitBtn = buildExitButton();
+    const muteBtn = buildMuteButton();
 
     overlay.appendChild(spotlight);
     overlay.appendChild(card);
     overlay.appendChild(stepBadge);
     overlay.appendChild(exitBtn);
+    overlay.appendChild(muteBtn);
     document.body.appendChild(overlay);
 
     // Keep spotlight + card glued to the target element on scroll/resize.
@@ -107,8 +128,14 @@
     currentTeardown = () => {
       window.removeEventListener('scroll', reposition, true);
       window.removeEventListener('resize', reposition);
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
       overlay.remove();
     };
+
+    // Speak the instruction if requested and not muted.
+    if (guidanceAction.read_aloud && !window[MUTE_STORAGE_KEY]) {
+      speakInstruction(guidanceAction.instruction);
+    }
   }
 
   function teardownHUD() {
@@ -210,7 +237,6 @@
     const vw = window.innerWidth;
     const vh = window.innerHeight;
 
-    // Estimate card size before layout settles (approx, then refine post-append).
     const cardWidth = config.cardMaxWidth;
     const cardHeight = card.offsetHeight || 90;
 
@@ -235,7 +261,6 @@
       left = Math.max(rect.left - gap - cardWidth, 8);
     }
 
-    // Clamp horizontally so the card never runs off-screen.
     left = Math.min(Math.max(left, 8), vw - cardWidth - 8);
     top = Math.min(Math.max(top, 8), vh - 8);
 
@@ -296,6 +321,52 @@
     });
     btn.addEventListener('click', teardownHUD);
     return btn;
+  }
+
+  // ---------------------------------------------------------------------
+  // 8b. Mute toggle — lets a presenter silence read-aloud without
+  //     leaving the demo flow. State persists across re-renders.
+  // ---------------------------------------------------------------------
+  function buildMuteButton() {
+    const btn = document.createElement('button');
+    btn.id = MUTE_ID;
+    const updateLabel = () => {
+      btn.textContent = window[MUTE_STORAGE_KEY] ? '🔇 Unmute' : '🔊 Mute';
+    };
+    updateLabel();
+    Object.assign(btn.style, {
+      position: 'fixed',
+      top: '20px',
+      right: '150px',
+      background: 'rgba(17,24,39,0.9)',
+      color: '#fff',
+      border: 'none',
+      borderRadius: '999px',
+      padding: '10px 18px',
+      fontFamily: 'system-ui, -apple-system, sans-serif',
+      fontSize: '13px',
+      fontWeight: '600',
+      cursor: 'pointer',
+      zIndex: '2147483002',
+      pointerEvents: 'auto',
+    });
+    btn.addEventListener('click', () => {
+      window[MUTE_STORAGE_KEY] = !window[MUTE_STORAGE_KEY];
+      if (window[MUTE_STORAGE_KEY] && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+      updateLabel();
+    });
+    return btn;
+  }
+
+  // ---------------------------------------------------------------------
+  // 8c. Read-aloud via SpeechSynthesis
+  // ---------------------------------------------------------------------
+  function speakInstruction(text) {
+    if (!text || !window.speechSynthesis) return;
+    const utterance = new SpeechSynthesisUtterance(text);
+    window.speechSynthesis.speak(utterance);
   }
 
   // ---------------------------------------------------------------------
