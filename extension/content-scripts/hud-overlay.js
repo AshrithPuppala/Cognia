@@ -384,5 +384,9 @@
   // ---------------------------------------------------------------------
   // 10. STANDALONE TEST — comment this out once real data is wired in.
   // ---------------------------------------------------------------------
-  renderHUD(MOCK_GUIDANCE_ACTION);
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "UPDATE_HUD") {
+    renderHUD(request.data);
+  }
+});
 })();

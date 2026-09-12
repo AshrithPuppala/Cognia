@@ -1,34 +1,46 @@
 // extension/background/service-worker.js
 
+const MOCK_PAGE_STATE = {
+  goal: "test goal",
+  url: "https://example.com",
+  accessibility_profile: "unsure",
+  elements: [
+    { id: "cognia-el-1-ab12c", role: "button", label: "Submit", state: "default", rect: [0,0,100,40] }
+  ]
+};
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "START_COGNIA_SESSION") {
-    chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const activeTabId = tabs[0].id;
-      
-      // Request DOM from Person 1's script
-      chrome.tabs.sendMessage(activeTabId, { action: "MAP_PAGE" }, (mapperResponse) => {
-        const rawDom = mapperResponse ? mapperResponse.rawDom : document.body.innerHTML;
-        
-        // Pass to your PII Guard
-        chrome.tabs.sendMessage(activeTabId, { action: "SCRUB_DOM", rawDom: rawDom }, async (piiResponse) => {
-          
-          // Send scrubbed payload to Person 2's backend proxy
-          const backendResponse = await fetch('http://localhost:3000/api/reason', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              url: tabs[0].url, 
-              domSnippet: piiResponse.sanitizedDom, 
-              goal: request.goal 
-            })
+
+      chrome.tabs.sendMessage(
+        activeTabId,
+        { type: "cognia:request-page-state", goal: request.goal },
+        async (mapperResponse) => {
+          const pageState = mapperResponse
+            ? { ...mapperResponse, accessibility_profile: request.accessibility_profile }
+            : { ...MOCK_PAGE_STATE, goal: request.goal, accessibility_profile: request.accessibility_profile };
+
+          chrome.tabs.sendMessage(activeTabId, { action: "SCRUB_PAGE_STATE", pageState }, async (piiResponse) => {
+            if (!piiResponse) {
+              console.error("Cognia: PII Guard did not respond — is pii-guard.js registered in manifest.json?");
+              return;
+            }
+            try {
+              const backendResponse = await fetch('http://localhost:3000/reason', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(piiResponse.redactedPageState)
+              });
+              const guidanceData = await backendResponse.json();
+              chrome.tabs.sendMessage(activeTabId, { action: "UPDATE_HUD", data: guidanceData });
+            } catch (err) {
+              console.error("Cognia: backend call failed", err);
+            }
           });
-          
-          const guidanceData = await backendResponse.json();
-          
-          // Send AI output to Person 3's visual HUD overlay
-          chrome.tabs.sendMessage(activeTabId, { action: "UPDATE_HUD", data: guidanceData });
-        });
-      });
+        }
+      );
     });
   }
 });
