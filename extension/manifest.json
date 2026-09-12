@@ -10,7 +10,7 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content-scripts/page-mapper.js", "content-scripts/pii-guard.js", "content-scripts/hud-overlay.js"],
+      "js": ["content-scripts/hud-overlay.js"],
       "css": ["styles/hud.css"]
     }
   ]
