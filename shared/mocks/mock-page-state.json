@@ -1,10 +1,35 @@
 {
   "goal": "renew my driver's licence",
-  "url": "gov-services.example/renew-licence",
-  "accessibility_profile": "unsure",
+  "accessibility_profile": "cognitive_load",
   "elements": [
-    { "id": "el_12", "role": "textbox", "label": "Full Name", "state": "empty", "rect": [40, 120, 300, 40] },
-    { "id": "el_13", "role": "select", "label": "Department", "state": "empty", "rect": [40, 170, 300, 40] }
+    {
+      "id": "el_1",
+      "role": "input",
+      "label": "Full Name",
+      "state": "empty",
+      "rect": [120, 200, 240, 32]
+    },
+    {
+      "id": "el_2",
+      "role": "input",
+      "label": "Date of Birth",
+      "state": "empty",
+      "rect": [120, 250, 240, 32]
+    },
+    {
+      "id": "el_3",
+      "role": "select",
+      "label": "Jurisdictional Authority",
+      "state": "empty",
+      "rect": [120, 300, 240, 32]
+    },
+    {
+      "id": "el_4",
+      "role": "button",
+      "label": "Submit",
+      "state": "empty",
+      "rect": [120, 350, 120, 40]
+    }
   ],
-  "history": ["selected licence type", "failed date field twice"]
+  "history": []
 }
