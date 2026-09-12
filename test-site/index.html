@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>e-RTO Citizen Services Portal | Ministry of Road Transport (Simulated) | Govt. Portal (Beta)</title>
+<style>
+  :root {
+    --gov-blue: #0f3d73;
+    --gov-blue-hover: #1a56a3;
+    --gov-orange: #f58220;
+    --gov-green: #138808;
+    --gov-red: #d32f2f;
+    --text-main: #2c3e50;
+    --text-muted: #5c6a79;
+    --bg-page: #f0f4f8;
+    --surface: #ffffff;
+    --border-light: #e1e4e8;
+    --border-dark: #b0bec5;
+    --focus-ring: 0 0 0 3px rgba(15, 61, 115, 0.25);
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  }
+
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+  @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+  @keyframes pulseRed { 0% { box-shadow: 0 0 0 0 rgba(211,47,47,0.6); } 70% { box-shadow: 0 0 0 6px rgba(211,47,47,0); } 100% { box-shadow: 0 0 0 0 rgba(211,47,47,0); } }
+
+  * { box-sizing: border-box; }
+  html { font-size: 100%; scroll-behavior: smooth; }
+  body {
+    margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg-page); color: var(--text-main); font-size: 14px; line-height: 1.5;
+  }
+  a { color: var(--gov-blue); transition: color 0.2s; }
+  a:hover { color: var(--gov-orange); }
+
+  .skip-link {
+    position: absolute; left: -9999px; top: 0; background: var(--surface); color: var(--gov-blue);
+    padding: 10px 16px; z-index: 2000; border: 2px solid var(--gov-blue); font-weight: bold; border-radius: 4px;
+  }
+  .skip-link:focus { left: 10px; top: 10px; }
+
+  /* ===== Top ribbon + header ===== */
+  .top-ribbon {
+    background: linear-gradient(90deg, var(--gov-orange) 0%, var(--gov-orange) 33%, var(--surface) 33%, var(--surface) 66%, var(--gov-green) 66%);
+    height: 6px;
+  }
+  header.gov-header {
+    background: var(--surface); color: var(--gov-blue); padding: 16px 24px;
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+    border-bottom: 1px solid var(--border-light); box-shadow: var(--shadow-sm);
+  }
+  header.gov-header .title { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+  header.gov-header .subtitle { font-size: 12px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+  header.gov-header .top-links { font-size: 13px; font-weight: 600; }
+  header.gov-header .top-links a { color: var(--text-muted); margin-left: 20px; text-decoration: none; cursor: pointer; }
+  header.gov-header .top-links a:hover { color: var(--gov-blue); }
+
+  /* ===== Sub-nav bar 1 ===== */
+  .subnav-1 {
+    background: var(--gov-blue); color: var(--surface); padding: 6px 24px; font-size: 12px;
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+  }
+  .subnav-1 .tool-group { display: flex; align-items: center; gap: 10px; }
+  .subnav-1 label { color: #e1e8f0; margin: 0; font-weight: 500; }
+  .subnav-1 select { font-size: 12px; padding: 4px 8px; border-radius: 4px; border: 1px solid transparent; }
+  .font-resize button {
+    background: rgba(255,255,255,0.1); color: var(--surface); border: 1px solid rgba(255,255,255,0.2);
+    padding: 4px 10px; font-size: 12px; cursor: pointer; border-radius: 4px; transition: background 0.2s;
+  }
+  .font-resize button:hover { background: rgba(255,255,255,0.2); }
+  
+  .login-tabs { display: flex; gap: 4px; }
+  .login-tabs [role="tab"] {
+    background: rgba(255,255,255,0.1); color: var(--surface); border: none; border-radius: 4px 4px 0 0;
+    padding: 6px 16px; font-size: 12px; cursor: pointer; font-weight: 600; transition: background 0.2s;
+  }
+  .login-tabs [role="tab"][aria-selected="true"] { background: var(--surface); color: var(--gov-blue); }
+
+  .login-panels { background: var(--surface); border-bottom: 3px solid var(--gov-orange); box-shadow: var(--shadow-sm); }
+  .login-panels [role="tabpanel"] { padding: 12px 24px; font-size: 13px; max-width: 1400px; margin: 0 auto; }
+  
+  /* Forces inactive tabs to actually hide */
+  .login-panels [role="tabpanel"][hidden] { display: none !important; }
+  
+  /* Forces the form elements into a neat horizontal row */
+  .login-panels form { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .login-panels form label { margin: 0 !important; display: inline-block; font-weight: 600; color: var(--text-main); }
+  .login-panels form input { margin: 0 !important; width: auto !important; padding: 6px 12px; border: 1px solid var(--border-dark); border-radius: 4px; font-size: 13px; outline: none; }
+  .login-panels form input:focus { border-color: var(--gov-blue); box-shadow: var(--focus-ring); }
+  .login-panels .gov-btn.mini { padding: 6px 16px; font-size: 12px; margin: 0; }
+
+  /* ===== Sub-nav bar 2 ===== */
+  .subnav-2 {
+    background: #ffffff; border-bottom: 1px solid var(--border-light); padding: 0 24px;
+    display: flex; gap: 0; flex-wrap: wrap; box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  }
+  .subnav-2 a {
+    display: block; padding: 12px 16px; text-decoration: none; color: var(--text-muted);
+    font-weight: 600; cursor: pointer; font-size: 13px; transition: all 0.2s; border-bottom: 3px solid transparent;
+  }
+  .subnav-2 a:hover { color: var(--gov-blue); background: #f8f9fa; }
+  .subnav-2 a.current { color: var(--gov-blue); border-bottom-color: var(--gov-orange); background: #f8f9fa; }
+
+  /* ===== Marquee notices ===== */
+  .notice-bar {
+    background: #fff8e1; border-bottom: 1px solid #ffecb3; overflow: hidden; white-space: nowrap;
+    padding: 8px 0; font-size: 13px; font-weight: 600; color: #d84315;
+  }
+
+  /* ===== Session expiring flasher ===== */
+  .session-flash {
+    background: var(--gov-red); color: var(--surface); text-align: center; padding: 8px;
+    font-weight: 700; font-size: 13px; animation: blink 1.5s infinite; letter-spacing: 0.5px;
+  }
+
+  /* ===== Layout: 3 column ===== */
+  .layout { display: flex; max-width: 1400px; margin: 24px auto; gap: 24px; padding: 0 16px; align-items: flex-start; }
+
+  aside.sidebar {
+    width: 260px; flex-shrink: 0; background: var(--surface); border-radius: 8px;
+    box-shadow: var(--shadow-sm); font-size: 13px; overflow: hidden; border: 1px solid var(--border-light);
+  }
+  aside.sidebar .block-title {
+    background: #f8f9fa; color: var(--gov-blue); padding: 12px 16px; font-weight: 700;
+    font-size: 13px; border-bottom: 1px solid var(--border-light); text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  aside.sidebar ul { list-style: none; margin: 0; padding: 0; }
+  aside.sidebar a {
+    display: block; padding: 10px 16px; color: var(--text-main); text-decoration: none; cursor: pointer;
+    border-bottom: 1px solid var(--border-light); transition: background 0.2s;
+  }
+  aside.sidebar a:hover { background: #f1f5f9; color: var(--gov-blue); }
+  aside.sidebar .highlight { background: #eef2f6; font-weight: 600; border-left: 3px solid var(--gov-blue); }
+
+  /* Left sidebar accordion */
+  .acc-header {
+    width: 100%; text-align: left; background: var(--surface); border: none; border-bottom: 1px solid var(--border-light);
+    padding: 12px 16px; font-size: 13px; font-weight: 600; color: var(--text-main); cursor: pointer;
+    display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;
+  }
+  .acc-header:hover { background: #f8f9fa; color: var(--gov-blue); }
+  .acc-header[aria-expanded="true"] { background: #f1f5f9; color: var(--gov-blue); border-left: 3px solid var(--gov-blue); }
+  .rto-status-widget { padding: 16px; font-size: 12px; background: #fff; }
+  .rto-status-widget .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--gov-green); margin-right: 6px; animation: pulseRed 2s infinite; }
+
+  /* Right sidebar content blocks */
+  .res-list { padding: 8px 0; }
+  .res-list a { border: none; padding: 8px 16px; font-size: 12px; }
+  .contact-table, .timing-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .contact-table th, .timing-table th { background: #f8f9fa; font-weight: 600; color: var(--text-muted); border-bottom: 2px solid var(--border-light); padding: 8px 16px; text-align: left; }
+  .contact-table td, .timing-table td { border-bottom: 1px solid var(--border-light); padding: 8px 16px; }
+  
+  .faq-q {
+    width: 100%; text-align: left; background: var(--surface); border: none; border-bottom: 1px solid var(--border-light);
+    padding: 12px 16px; font-size: 13px; font-weight: 600; color: var(--gov-blue); cursor: pointer;
+  }
+  .faq-q:hover { background: #f8f9fa; }
+  .faq-a { padding: 12px 16px; font-size: 13px; color: var(--text-muted); background: #fdfdfd; border-bottom: 1px solid var(--border-light); }
+
+  /* ===== Main Content Area ===== */
+  main.content { 
+    flex: 1; background: var(--surface); border-radius: 8px; box-shadow: var(--shadow-md); 
+    padding: 32px; min-width: 0; border: 1px solid var(--border-light); 
+  }
+
+  .breadcrumb { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; font-weight: 500; }
+  .breadcrumb a { text-decoration: none; color: var(--gov-blue); }
+  .page-title { font-size: 24px; color: var(--gov-blue); margin: 0 0 16px; font-weight: 800; letter-spacing: -0.5px; }
+  .screen-title { font-size: 18px; color: var(--text-main); margin: 0 0 16px; padding-bottom: 8px; border-bottom: 2px solid var(--border-light); }
+
+  .legal-block {
+    background: #fff8e1; border-left: 4px solid var(--gov-orange); padding: 16px; font-size: 13px;
+    color: #5d4037; margin: 0 0 24px 0; border-radius: 0 4px 4px 0; line-height: 1.6;
+  }
+
+  /* Hub dashboard tiles */
+  .tile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-top: 24px; }
+  .tile-btn {
+    display: block; width: 100%; text-align: left; background: var(--surface); border: 1px solid var(--border-light);
+    padding: 20px; border-radius: 8px; cursor: pointer; transition: all 0.2s; box-shadow: var(--shadow-sm);
+  }
+  .tile-btn:hover { border-color: var(--gov-blue); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+  .tile-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); border-color: var(--gov-blue); }
+  .tile-btn .tile-icon { font-size: 28px; display: block; margin-bottom: 12px; }
+  .tile-btn .tile-name { font-weight: 700; color: var(--gov-blue); display: block; margin-bottom: 4px; font-size: 15px; }
+  .tile-btn .tile-desc { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
+
+  /* Bottom Clutter */
+  .bottom-clutter { display: flex; gap: 24px; margin-top: 40px; flex-wrap: wrap; border-top: 1px solid var(--border-light); padding-top: 32px; }
+  .clutter-col { flex: 1; min-width: 280px; }
+  .clutter-col h3 { color: var(--text-main); font-size: 15px; margin: 0 0 16px 0; font-weight: 700; }
+  .leadership-box { display: flex; gap: 16px; margin-bottom: 16px; align-items: center; background: #f8f9fa; padding: 12px; border-radius: 6px; border: 1px solid var(--border-light); }
+  .leader-img { width: 60px; height: 60px; background: #e1e4e8; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #95a5a6; font-size: 11px; flex-shrink: 0; }
+  .stats-table td { padding: 8px 0; border-bottom: 1px solid var(--border-light); font-size: 13px; color: var(--text-muted); }
+  .stats-table td:last-child { color: var(--gov-blue); font-weight: 700; }
+  .tender-list li { padding: 10px 0; border-bottom: 1px solid var(--border-light); font-size: 13px; }
+
+  /* Drill Lists */
+  .drill-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--border-light); border-radius: 8px; overflow: hidden; }
+  .drill-list li { border-bottom: 1px solid var(--border-light); }
+  .drill-list li:last-child { border-bottom: none; }
+  .drill-btn {
+    width: 100%; text-align: left; background: var(--surface); border: none; padding: 16px 20px;
+    font-size: 14px; cursor: pointer; color: var(--gov-blue); font-weight: 600;
+    display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;
+  }
+  .drill-btn:hover { background: #f8f9fa; }
+  .drill-btn:focus-visible { outline: none; background: #f1f5f9; box-shadow: inset var(--focus-ring); }
+  .drill-btn .drill-desc { display: block; font-size: 12px; font-weight: 400; color: var(--text-muted); margin-top: 4px; }
+  .drill-btn .arrow { font-size: 18px; color: var(--border-dark); }
+
+  /* Forms & Fields */
+  .step-tracker { display: flex; margin: 24px 0; border-radius: 6px; overflow: hidden; border: 1px solid var(--border-light); }
+  .step-tracker .step { flex: 1; text-align: center; padding: 10px; background: #f8f9fa; border-right: 1px solid var(--border-light); color: var(--text-muted); font-size: 12px; font-weight: 600; }
+  .step-tracker .step:last-child { border-right: none; }
+  .step-tracker .step.active { background: var(--gov-blue); color: var(--surface); }
+  .step-tracker .step.done { background: var(--gov-green); color: var(--surface); }
+
+  fieldset { border: 1px solid var(--border-dark); margin-bottom: 24px; padding: 24px; border-radius: 8px; background: #fafcff; }
+  fieldset fieldset { background: var(--surface); border-style: dashed; padding: 16px; margin-top: 16px; }
+  legend { font-size: 14px; font-weight: 700; color: var(--gov-blue); padding: 0 8px; background: #fafcff; border-radius: 4px; }
+
+  label { display: block; margin-top: 16px; font-size: 13px; font-weight: 600; color: var(--text-main); }
+  label:first-child { margin-top: 0; }
+  .hint { font-size: 11px; color: var(--text-muted); font-weight: 400; display: block; margin-top: 4px; }
+  .contradictory-hint { font-size: 11px; color: var(--gov-orange); font-weight: 500; display: block; margin-top: 4px; }
+
+  input:not([type="checkbox"]):not([type="radio"]), select, textarea {
+    width: 100%; padding: 10px 12px; margin-top: 8px; border: 1px solid var(--border-dark);
+    font-size: 14px; font-family: inherit; border-radius: 4px; outline: none; transition: all 0.2s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--gov-blue); box-shadow: var(--focus-ring); }
+  input:disabled, select:disabled { background: #eef2f6; color: #94a3b8; cursor: not-allowed; }
+
+  .row { display: flex; gap: 16px; }
+  .row > div { flex: 1; }
+
+  .radio-cluster { border: 1px solid var(--border-light); padding: 12px 16px; margin-top: 8px; background: var(--surface); border-radius: 4px; }
+  .radio-cluster .radio-line { display: inline-flex; align-items: center; margin-right: 24px; font-weight: 400; font-size: 13px; cursor: pointer; }
+  .radio-cluster .radio-line input { margin: 0 8px 0 0; width: 16px; height: 16px; cursor: pointer; }
+
+  .switch-row { display: flex; align-items: center; gap: 12px; margin-top: 16px; padding: 12px; background: var(--surface); border: 1px solid var(--border-light); border-radius: 4px; }
+  .custom-switch {
+    width: 48px; height: 24px; background: var(--border-dark); border-radius: 12px; position: relative; cursor: pointer; flex-shrink: 0; transition: background 0.3s;
+  }
+  .custom-switch::after {
+    content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; background: #fff;
+    border-radius: 50%; transition: left 0.2s cubic-bezier(0.4, 0.0, 0.2, 1); box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .custom-switch[aria-checked="true"] { background: var(--gov-green); }
+  .custom-switch[aria-checked="true"]::after { left: 26px; }
+  .custom-switch:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+  /* Buttons */
+  .three-buttons { display: flex; gap: 12px; flex-wrap: wrap; }
+  .gov-btn {
+    padding: 10px 24px; font-size: 14px; font-weight: 600; border: 1px solid var(--border-dark); cursor: pointer;
+    background: var(--surface); color: var(--text-main); border-radius: 4px; font-family: inherit; transition: all 0.2s;
+  }
+  .gov-btn:hover { background: #f8f9fa; border-color: var(--text-muted); }
+  .gov-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+  .gov-btn.primary { background: var(--gov-blue); color: var(--surface); border-color: var(--gov-blue); }
+  .gov-btn.primary:hover { background: var(--gov-blue-hover); border-color: var(--gov-blue-hover); }
+  .gov-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .wizard-nav { display: flex; justify-content: space-between; margin-top: 32px; flex-wrap: wrap; gap: 16px; border-top: 1px solid var(--border-light); padding-top: 24px; }
+  .back-row { margin-top: 24px; border-top: 1px solid var(--border-light); padding-top: 24px; }
+
+  /* Alerts */
+  #resultBox, #gatewayResult, #precheckResult { margin-top: 24px; padding: 16px; font-size: 14px; border-radius: 4px; display: none; font-weight: 500; }
+  .success { background: #edf7ed; border: 1px solid #c8e6c9; color: #1e4620; display: block !important; }
+  .error { background: #fdeded; border: 1px solid #ffcdd2; color: #5f2120; display: block !important; }
+  .loading { background: #e3f2fd; border: 1px solid #bbdefb; color: #0d47a1; display: block !important; }
+
+  /* Modal & Toast */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15, 61, 115, 0.8); z-index: 3000; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+  .modal-overlay.visible { display: flex; }
+  .modal-box { background: var(--surface); width: 400px; border-radius: 8px; padding: 32px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
+  .modal-box h2 { color: var(--gov-red); font-size: 18px; margin: 0 0 12px 0; }
+  
+  #stubToast { position: fixed; bottom: 24px; right: 24px; background: var(--text-main); color: var(--surface); padding: 12px 24px; font-size: 13px; border-radius: 4px; box-shadow: var(--shadow-md); display: none; z-index: 4000; }
+  #stubToast.visible { display: block; animation: slideUp 0.3s ease-out forwards; }
+  @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+  footer.gov-footer { text-align: center; font-size: 12px; color: var(--text-muted); padding: 24px; background: #e1e4e8; margin-top: 40px; }
+
+  @media (max-width: 980px) {
+    .layout { flex-direction: column; }
+    aside.sidebar { width: 100%; }
+    .bottom-clutter { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<a href="#mainContent" class="skip-link">Skip to main content</a>
+
+<div class="top-ribbon"></div>
+
+<header class="gov-header">
+  <div>
+    <div class="title" id="mainHeaderTitle">e-RTO Citizen Services Portal</div>
+    <div class="subtitle">Ministry of Road Transport (Simulated) &middot; Unified Citizen Services System v4.2</div>
+  </div>
+  <div class="top-links">
+    <a data-stub="Home">Home</a>
+    <a data-stub="Track Application">Track Application</a>
+    <a data-stub="Pay Challan">Pay Challan</a>
+    <a data-stub="Register Commercial Vehicle">Register Commercial Vehicle</a>
+    <a data-stub="Helpline">Helpline</a>
+  </div>
+</header>
+
+<nav class="subnav-1" aria-label="Accessibility, language and login tools">
+  <div class="tool-group font-resize" role="group" aria-label="Adjust text size">
+    <span id="fontSizeLabel">Text Size:</span>
+    <button type="button" id="fontDecrease" aria-label="Decrease text size">A-</button>
+    <button type="button" id="fontReset" aria-label="Reset text size">A</button>
+    <button type="button" id="fontIncrease" aria-label="Increase text size">A+</button>
+  </div>
+  <div class="tool-group">
+    <label for="langSelect">Language</label>
+    <select id="langSelect" name="langSelect">
+      <option value="en" selected>English</option>
+      <option value="hi">हिन्दी</option>
+      <option value="ta">தமிழ்</option>
+      <option value="bn">বাংলা</option>
+      <option value="mr">मराठी</option>
+    </select>
+  </div>
+  <div class="tool-group">
+    <div class="login-tabs" role="tablist" aria-label="Login portal selection">
+      <button type="button" role="tab" id="tab-citizen" aria-selected="true" aria-controls="panel-citizen">Citizen Login</button>
+      <button type="button" role="tab" id="tab-officer" aria-selected="false" aria-controls="panel-officer" tabindex="-1">Officer Login</button>
+      <button type="button" role="tab" id="tab-rto" aria-selected="false" aria-controls="panel-rto" tabindex="-1">RTO Staff Login</button>
+    </div>
+  </div>
+</nav>
+
+<div class="login-panels" id="loginPanelsContainer">
+  <div id="panel-citizen" role="tabpanel" aria-labelledby="tab-citizen">
+    <form id="citizenLoginForm">
+      <label for="citizenUser">Citizen ID / Mobile No.</label>
+      <input type="text" id="citizenUser" name="citizenUser" size="18" required/>
+      <label for="citizenPass">Password</label>
+      <input type="password" id="citizenPass" name="citizenPass" size="14" required/>
+      <button type="submit" class="gov-btn primary mini">Login</button>
+    </form>
+  </div>
+  <div id="panel-officer" role="tabpanel" aria-labelledby="tab-officer" hidden>
+    <form id="officerLoginForm">
+      <label for="officerId">Officer ID</label>
+      <input type="text" id="officerId" name="officerId" size="18" required/>
+      <label for="officerPass">Password</label>
+      <input type="password" id="officerPass" name="officerPass" size="14" required/>
+      <button type="submit" class="gov-btn primary mini">Login</button>
+    </form>
+  </div>
+  <div id="panel-rto" role="tabpanel" aria-labelledby="tab-rto" hidden>
+    <form id="rtoLoginForm">
+      <label for="rtoStaffId">RTO Staff Code</label>
+      <input type="text" id="rtoStaffId" name="rtoStaffId" size="18" required/>
+      <label for="rtoStaffPass">Password</label>
+      <input type="password" id="rtoStaffPass" name="rtoStaffPass" size="14" required/>
+      <button type="submit" class="gov-btn primary mini">Login</button>
+    </form>
+  </div>
+</div>
+
+<nav class="subnav-2" aria-label="Primary site navigation">
+  <a class="current" data-stub="Home">Home</a>
+  <a data-stub="Vehicle Registration">Vehicle Registration</a>
+  <a data-stub="Licence Services">Licence Services</a>
+  <a data-stub="Permits &amp; Taxation">Permits &amp; Taxation</a>
+  <a data-stub="Fancy Number Booking">Fancy Number Booking</a>
+  <a data-stub="Grievance Redressal">Grievance Redressal</a>
+  <a data-stub="RTI Requests">RTI Requests</a>
+  <a data-stub="Gazette Notifications">Gazette Notifications</a>
+</nav>
+
+<div class="notice-bar">
+  <marquee id="noticeMarquee" behavior="scroll" direction="left">Loading notices…</marquee>
+</div>
+
+<div class="session-flash" id="sessionFlash">⚠ SESSION EXPIRING IN <span id="sessionCountdown">04:58</span> — SAVE YOUR PROGRESS NOW ⚠</div>
+
+<div class="layout">
+
+  <aside class="sidebar left-sidebar" aria-label="Service categories">
+    <div class="block-title">All Citizen Services (A–Z)</div>
+    <div class="accordion" id="leftAccordion">
+
+      <h3 style="margin:0;">
+        <button type="button" class="acc-header" id="accHead-vehicle" aria-expanded="false" aria-controls="accPanel-vehicle">
+          Vehicle Registration <span class="caret">▾</span>
+        </button>
+      </h3>
+      <div class="acc-panel" id="accPanel-vehicle" hidden>
+        <ul>
+          <li><a data-stub="New Vehicle Registration">New Vehicle Registration</a></li>
+          <li><a data-stub="Change of Ownership">Change of Ownership</a></li>
+          <li><a data-stub="NOC for Vehicle Transfer">NOC for Vehicle Transfer</a></li>
+          <li><a data-stub="Duplicate RC">Duplicate RC</a></li>
+          <li><a data-stub="Hypothecation Addition/Termination">Hypothecation Addition/Termination</a></li>
+        </ul>
+      </div>
+
+      <h3 style="margin:0;">
+        <button type="button" class="acc-header" id="accHead-licensing" aria-expanded="true" aria-controls="accPanel-licensing">
+          Licensing Management <span class="caret">▾</span>
+        </button>
+      </h3>
+      <div class="acc-panel" id="accPanel-licensing">
+        <ul>
+          <li><a id="sidebarDLServicesLink" class="highlight" style="cursor:pointer;">Services on Driving Licence (DL-Services)</a></li>
+          <li><a data-stub="Learner's Licence Services">Learner's Licence Services</a></li>
+          <li><a data-stub="Driving School Licensing">Driving School Licensing</a></li>
+          <li><a data-stub="Conductor Licence">Conductor Licence</a></li>
+        </ul>
+      </div>
+
+      <h3 style="margin:0;">
+        <button type="button" class="acc-header" id="accHead-permits" aria-expanded="false" aria-controls="accPanel-permits">
+          Commercial Permits <span class="caret">▾</span>
+        </button>
+      </h3>
+      <div class="acc-panel" id="accPanel-permits" hidden>
+        <ul>
+          <li><a data-stub="National Permit">National Permit</a></li>
+          <li><a data-stub="Tourist Permit">Tourist Permit</a></li>
+          <li><a data-stub="Goods Carriage Permit">Goods Carriage Permit</a></li>
+          <li><a data-stub="Contract Carriage Permit">Contract Carriage Permit</a></li>
+        </ul>
+      </div>
+
+      <h3 style="margin:0;">
+        <button type="button" class="acc-header" id="accHead-tax" aria-expanded="false" aria-controls="accPanel-tax">
+          Tax &amp; Fee Services <span class="caret">▾</span>
+        </button>
+      </h3>
+      <div class="acc-panel" id="accPanel-tax" hidden>
+        <ul>
+          <li><a data-stub="Road Tax Payment">Road Tax Payment</a></li>
+          <li><a data-stub="Tax Exemption Application">Tax Exemption Application</a></li>
+          <li><a data-stub="Green Tax Payment">Green Tax Payment</a></li>
+        </ul>
+      </div>
+
+      <h3 style="margin:0;">
+        <button type="button" class="acc-header" id="accHead-fancy" aria-expanded="false" aria-controls="accPanel-fancy">
+          Fancy Number Booking <span class="caret">▾</span>
+        </button>
+      </h3>
+      <div class="acc-panel" id="accPanel-fancy" hidden>
+        <ul>
+          <li><a data-stub="View Available Numbers">View Available Numbers</a></li>
+          <li><a data-stub="Book Fancy Number Auction">Book Fancy Number Auction</a></li>
+        </ul>
+      </div>
+
+      <h3 style="margin:0;">
+        <button type="button" class="acc-header" id="accHead-trade" aria-expanded="false" aria-controls="accPanel-trade">
+          Trade Certificates <span class="caret">▾</span>
+        </button>
+      </h3>
+      <div class="acc-panel" id="accPanel-trade" hidden>
+        <ul>
+          <li><a data-stub="Dealer Trade Certificate">Dealer Trade Certificate</a></li>
+          <li><a data-stub="Trade Certificate Renewal">Trade Certificate Renewal</a></li>
+        </ul>
+      </div>
+
+      <h3 style="margin:0;">
+        <button type="button" class="acc-header" id="accHead-misc" aria-expanded="false" aria-controls="accPanel-misc">
+          Other Civic Services <span class="caret">▾</span>
+        </button>
+      </h3>
+      <div class="acc-panel" id="accPanel-misc" hidden>
+        <ul>
+          <li><a data-stub="Vehicle Fitness Certificate">Vehicle Fitness Certificate</a></li>
+          <li><a data-stub="Pollution Certificate Records">Pollution Certificate Records</a></li>
+          <li><a data-stub="Scrap Vehicle Deregistration">Scrap Vehicle Deregistration</a></li>
+          <li><a data-stub="RTO Office Locator">RTO Office Locator</a></li>
+          <li><a data-stub="Grievance Redressal">Grievance Redressal</a></li>
+        </ul>
+      </div>
+
+    </div>
+
+    <div class="block-title">RTO Server Status</div>
+    <div class="rto-status-widget">
+      <span class="dot"></span>Application Server: <strong>Online (High Load)</strong><br/>
+      <span style="color:#a33;">Average processing delay: 2–3 working days</span>
+    </div>
+  </aside>
+
+  <main class="content" id="mainContent">
+    <div class="breadcrumb" id="breadcrumb" aria-live="polite">Home</div>
+
+    <!-- SCREEN: Services Hub (landing state) -->
+    <section class="screen" id="screen-hub">
+      <h1 class="page-title">Services Hub</h1>
+      <div class="legal-block">
+        <strong>Notice:</strong> This portal aggregates services across Vehicle Registration, Driving Licence
+        Management, Commercial Permits and Taxation. Please select the appropriate category below. Applicants
+        are advised that all services require a valid jurisdictional RTO Office Code. Misuse of this portal is
+        punishable under applicable provisions of the Motor Vehicles Act.
+      </div>
+      <div class="tile-grid">
+        <button type="button" class="tile-btn" id="hubCitizenServicesTile">
+          <span class="tile-icon">🏛</span>
+          <span class="tile-name">Citizen Services</span>
+          <span class="tile-desc">Driving Licence, Vehicle Registration, Permits, Tax &amp; more</span>
+        </button>
+        <button type="button" class="tile-btn" data-stub="Vehicle Services Hub">
+          <span class="tile-icon">🚗</span>
+          <span class="tile-name">Vehicle Services</span>
+          <span class="tile-desc">Registration, ownership transfer, fitness certificates</span>
+        </button>
+        <button type="button" class="tile-btn" data-stub="Track Application">
+          <span class="tile-icon">🔍</span>
+          <span class="tile-name">Track Application</span>
+          <span class="tile-desc">Check status using Application ID</span>
+        </button>
+        <button type="button" class="tile-btn" data-stub="Pay Challan">
+          <span class="tile-icon">💳</span>
+          <span class="tile-name">Pay Challan</span>
+          <span class="tile-desc">Settle pending e-challans online</span>
+        </button>
+        <button type="button" class="tile-btn" data-stub="Grievance Redressal">
+          <span class="tile-icon">📋</span>
+          <span class="tile-name">Grievance Redressal</span>
+          <span class="tile-desc">Lodge a complaint against an RTO office</span>
+        </button>
+        <button type="button" class="tile-btn" data-stub="RTO Office Locator">
+          <span class="tile-icon">📍</span>
+          <span class="tile-name">RTO Office Locator</span>
+          <span class="tile-desc">Find your jurisdictional RTO office</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- SCREEN: Citizen Services -->
+    <section class="screen" id="screen-citizen-services" hidden>
+      <h2 class="screen-title">Citizen Services</h2>
+      <ul class="drill-list">
+        <li>
+          <button type="button" class="drill-btn" id="toLicensingManagementBtn">
+            <span>Licensing Management
+              <span class="drill-desc">Driving licence, learner's licence, driving school and conductor licence services</span>
+            </span>
+            <span class="arrow">›</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="drill-btn" data-stub="Vehicle Registration">
+            <span>Vehicle Registration
+              <span class="drill-desc">New registration, ownership transfer, duplicate RC</span>
+            </span>
+            <span class="arrow">›</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="drill-btn" data-stub="Permits &amp; Taxation">
+            <span>Permits &amp; Taxation
+              <span class="drill-desc">National/tourist permits, road tax, tax exemption</span>
+            </span>
+            <span class="arrow">›</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="drill-btn" data-stub="Grievance Cell">
+            <span>Grievance Cell
+              <span class="drill-desc">File and track complaints against RTO offices</span>
+            </span>
+            <span class="arrow">›</span>
+          </button>
+        </li>
+      </ul>
+      <div class="back-row">
+        <button type="button" class="gov-btn" data-back>&laquo; Back</button>
+      </div>
+    </section>
+
+    <!-- SCREEN: Licensing Management -->
+    <section class="screen" id="screen-licensing-management" hidden>
+      <h2 class="screen-title">Licensing Management</h2>
+      <ul class="drill-list">
+        <li>
+          <button type="button" class="drill-btn" id="toDlServicesBtn">
+            <span>Services on Driving Licence (DL-Services)
+              <span class="drill-desc">Apply, renew, duplicate or endorse a driving licence</span>
+            </span>
+            <span class="arrow">›</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="drill-btn" data-stub="Learner's Licence Services">
+            <span>Learner's Licence Services
+              <span class="drill-desc">Apply for or renew a learner's licence</span>
+            </span>
+            <span class="arrow">›</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="drill-btn" data-stub="Driving School Licensing">
+            <span>Driving School Licensing
+              <span class="drill-desc">Register or renew a driving training school</span>
+            </span>
+            <span class="arrow">›</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="drill-btn" data-stub="Conductor Licence">
+            <span>Conductor Licence
+              <span class="drill-desc">Apply for a public service vehicle conductor licence</span>
+            </span>
+            <span class="arrow">›</span>
+          </button>
+        </li>
+      </ul>
+      <div class="back-row">
+        <button type="button" class="gov-btn" data-back>&laquo; Back</button>
+      </div>
+    </section>
+
+    <!-- SCREEN: DL Services -->
+    <section class="screen" id="screen-dl-services" hidden>
+      <h2 class="screen-title">Services on Driving Licence (DL-Services)</h2>
+      <ul class="drill-list">
+        <li>
+          <button type="button" class="drill-btn" id="toJurisdictionGatewayBtn">
+            <span>Apply for Driving Licence / Renewal
+              <span class="drill-desc">New driving licence, renewal, commercial endorsement or duplicate</span>
+            </span>
+            <span class="arrow">›</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="drill-btn" data-stub="International Driving Permit">
+            <span>International Driving Permit
+              <span class="drill-desc">Apply for an IDP for overseas travel</span>
+            </span>
+            <span class="arrow">›</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="drill-btn" data-stub="Change of Address on Licence">
+            <span>Change of Address on Licence
+              <span class="drill-desc">Update address recorded on an existing licence</span>
+            </span>
+            <span class="arrow">›</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="drill-btn" data-stub="Add New Vehicle Class">
+            <span>Add New Vehicle Class to Licence
+              <span class="drill-desc">Endorse an additional vehicle class</span>
+            </span>
+            <span class="arrow">›</span>
+          </button>
+        </li>
+      </ul>
+      <div class="back-row">
+        <button type="button" class="gov-btn" data-back>&laquo; Back</button>
+      </div>
+    </section>
+
+    <!-- SCREEN: Generic Service (Catch-All for stubbed links) -->
+    <section class="screen" id="screen-generic-service" hidden>
+      <h2 class="screen-title" id="genericServiceTitle">Service Name</h2>
+      <div class="legal-block">
+        <strong>Notice:</strong> You are accessing a secondary citizen service. Ensure your documents are verified before submitting this form. False applications will lead to administrative penalties.
+      </div>
+      <form id="genericServiceForm">
+        <fieldset>
+          <legend>Application Details</legend>
+          
+          <label for="genericAppNo">Application Reference / ID</label>
+          <input type="text" id="genericAppNo" name="genericAppNo" placeholder="Enter reference if any" />
+
+          <label for="genericCategory">Service Sub-Category</label>
+          <select id="genericCategory" name="genericCategory">
+            <option value="">-- Select Category --</option>
+            <option value="new">New Request</option>
+            <option value="update">Update Existing Record</option>
+            <option value="cancel">Cancellation</option>
+          </select>
+
+          <label for="genericRemarks">Additional Remarks</label>
+          <textarea id="genericRemarks" name="genericRemarks" rows="3" placeholder="State reason for application..."></textarea>
+        </fieldset>
+        
+        <div id="genericResultBox" style="margin-top: 16px; padding: 12px 14px; font-size: 12.5px; border-radius: 3px; display: none; background: #e6f4ea; border: 1px solid #2e7d32; color: #1b4d20;"></div>
+
+        <div class="wizard-nav">
+          <button type="button" class="gov-btn" data-back>&laquo; Back</button>
+          <button type="submit" class="gov-btn primary">Submit Request</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- SCREEN: Jurisdiction / State & RTO Gateway -->
+    <section class="screen" id="screen-jurisdiction-gateway" hidden>
+      <h2 class="screen-title">Jurisdiction / State &amp; RTO Selection</h2>
+      <div class="legal-block">
+        You must select your jurisdictional State and RTO office before proceeding. Your application will
+        only be processed by the RTO office selected here; this cannot be changed later without filing a
+        fresh application.
+      </div>
+      <form id="jurisdictionForm">
+        <label for="gatewayState">State <span style="color:#b30000;">*</span></label>
+        <select id="gatewayState" name="gatewayState" required>
+          <option value="">-- Select State --</option>
+          <option value="KA">Karnataka</option>
+          <option value="TN">Tamil Nadu</option>
+          <option value="MH">Maharashtra</option>
+          <option value="DL">Delhi (NCT)</option>
+          <option value="UP">Uttar Pradesh</option>
+        </select>
+
+        <label for="gatewayRto">RTO Office <span style="color:#b30000;">*</span></label>
+        <select id="gatewayRto" name="gatewayRto" required disabled>
+          <option value="">-- Select State First --</option>
+        </select>
+
+        <label for="gatewayRtoCodeConfirm">Confirm RTO Office Code</label>
+        <input type="text" id="gatewayRtoCodeConfirm" name="gatewayRtoCodeConfirm" placeholder="Auto-filled after RTO selection" readonly />
+
+        <div id="gatewayResult" role="alert"></div>
+
+        <div class="wizard-nav">
+          <button type="button" class="gov-btn" data-back>&laquo; Back</button>
+          <button type="submit" class="gov-btn primary">Continue to Eligibility Check &raquo;</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- SCREEN: Eligibility Pre-Check -->
+    <section class="screen" id="screen-eligibility-precheck" hidden>
+      <h2 class="screen-title">Eligibility Pre-Check</h2>
+      <div class="legal-block">
+        Please answer the following questions accurately. This information is used only to route your
+        application to the correct processing queue and does not itself determine eligibility.
+      </div>
+      <form id="precheckForm">
+        <fieldset>
+          <legend>Pre-Verification Questionnaire</legend>
+
+          <label id="preQ1Label">1. Is your existing licence expired by more than 1 year?</label>
+          <div class="radio-cluster" role="group" aria-labelledby="preQ1Label">
+            <span class="radio-line"><input type="radio" id="preQ1Yes" name="preQ1" value="yes" required /> <label for="preQ1Yes" style="display:inline;margin:0;font-weight:normal;">Yes</label></span>
+            <span class="radio-line"><input type="radio" id="preQ1No" name="preQ1" value="no" /> <label for="preQ1No" style="display:inline;margin:0;font-weight:normal;">No</label></span>
+            <span class="radio-line"><input type="radio" id="preQ1NA" name="preQ1" value="na" /> <label for="preQ1NA" style="display:inline;margin:0;font-weight:normal;">Not Applicable (New Licence)</label></span>
+          </div>
+
+          <label id="preQ2Label" style="margin-top:16px;">2. Do you have any pending e-challans against your name or vehicle?</label>
+          <div class="radio-cluster" role="group" aria-labelledby="preQ2Label">
+            <span class="radio-line"><input type="radio" id="preQ2Yes" name="preQ2" value="yes" required /> <label for="preQ2Yes" style="display:inline;margin:0;font-weight:normal;">Yes</label></span>
+            <span class="radio-line"><input type="radio" id="preQ2No" name="preQ2" value="no" /> <label for="preQ2No" style="display:inline;margin:0;font-weight:normal;">No</label></span>
+          </div>
+
+          <label id="preQ3Label" style="margin-top:16px;">3. Have you previously held a licence suspended or revoked by any RTO?</label>
+          <div class="radio-cluster" role="group" aria-labelledby="preQ3Label">
+            <span class="radio-line"><input type="radio" id="preQ3Yes" name="preQ3" value="yes" required /> <label for="preQ3Yes" style="display:inline;margin:0;font-weight:normal;">Yes</label></span>
+            <span class="radio-line"><input type="radio" id="preQ3No" name="preQ3" value="no" /> <label for="preQ3No" style="display:inline;margin:0;font-weight:normal;">No</label></span>
+          </div>
+        </fieldset>
+
+        <div id="precheckResult" role="alert"></div>
+
+        <div class="wizard-nav">
+          <button type="button" class="gov-btn" data-back>&laquo; Back</button>
+          <button type="submit" class="gov-btn primary">Proceed to Application Form &raquo;</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- SCREEN: DL Application Form (gated reveal) -->
+    <section class="screen" id="screen-dl-form" hidden>
+      <h1 class="page-title">Driving Licence Application / Renewal</h1>
+
+      <div class="legal-block">
+        <strong>Notice:</strong> As per Motor Vehicles (Amendment) Act, all applicants must furnish valid identity
+        and address proof. Submission of false information is punishable under Section 177 and allied provisions.
+        This portal is monitored; multiple failed submissions may result in temporary suspension of your session.
+        RTO Office Code must correspond exactly to your jurisdictional office as listed in Annexure B; incorrect
+        codes will cause processing delays of up to 15 working days. Applicants are advised to keep a printed copy
+        of their acknowledgement receipt. This form does not save automatically unless "Save Draft" is used.
+      </div>
+
+      <div class="step-tracker" id="stepTracker">
+        <div class="step" data-step="1">1. Applicant Details</div>
+        <div class="step" data-step="2">2. Licence Details</div>
+        <div class="step" data-step="3">3. Declarations</div>
+        <div class="step" data-step="4">4. Review &amp; Submit</div>
+      </div>
+
+      <form id="dlForm">
+
+        <!-- STEP 1 -->
+        <section class="wizard-step" data-step="1">
+          <fieldset>
+            <legend>Applicant Details</legend>
+
+            <label for="fullName">Full Name (as per Aadhaar) <span style="color:#b30000;">*</span></label>
+            <input type="text" id="fullName" name="fullName" required />
+
+            <div class="row">
+              <div>
+                <label for="dob">Date of Birth <span style="color:#b30000;">*</span>
+                  <span class="hint">Enter in DD/MM/YYYY format only</span>
+                </label>
+                <input type="date" id="dob" name="dob" required />
+                <span class="contradictory-hint">Note: field below uses calendar picker (YYYY-MM-DD internally)</span>
+              </div>
+              <div>
+                <label for="aadhaar">Aadhaar Number</label>
+                <input type="text" id="aadhaar" name="aadhaar" maxlength="12" pattern="[0-9]{12}" placeholder="12-digit UID" />
+              </div>
+            </div>
+
+            <label for="rtoCode">RTO Office Code <span style="color:#b30000;">*</span>
+              <span class="hint">Mandatory — see Annexure B for valid codes</span>
+            </label>
+            <input type="text" id="rtoCode" name="rtoCode" placeholder="e.g. KA-05" required />
+
+            <fieldset>
+              <legend>Present Address</legend>
+              <label for="addrLine1">Address Line 1</label>
+              <input type="text" id="addrLine1" name="addrLine1" />
+              <div class="row">
+                <div>
+                  <label for="pincode">PIN Code</label>
+                  <input type="text" id="pincode" name="pincode" maxlength="6" />
+                </div>
+                <div>
+                  <label for="district">District</label>
+                  <input type="text" id="district" name="district" />
+                </div>
+              </div>
+            </fieldset>
+          </fieldset>
+        </section>
+
+        <!-- STEP 2 -->
+        <section class="wizard-step" data-step="2" hidden>
+          <fieldset>
+            <legend>Licence Details</legend>
+
+            <label for="licenceType">Application Type <span style="color:#b30000;">*</span></label>
+            <select id="licenceType" name="licenceType" required>
+              <option value="">-- Select --</option>
+              <option value="new">New Licence</option>
+              <option value="renewal">Renewal</option>
+              <option value="commercial">Commercial Endorsement</option>
+              <option value="duplicate">Duplicate Licence</option>
+            </select>
+
+            <div id="dynamicLicenceFields"></div>
+
+            <label style="margin-top:16px;">Vehicle Class(es) Applied For</label>
+            <div class="radio-cluster">
+              <span class="radio-line"><input type="checkbox" id="classMC" name="vehicleClass" value="MC" /> MC (Motorcycle)</span>
+              <span class="radio-line"><input type="checkbox" id="classLMV" name="vehicleClass" value="LMV" /> LMV (Light Motor Vehicle)</span>
+              <span class="radio-line"><input type="checkbox" id="classHMV" name="vehicleClass" value="HMV" /> HMV (Heavy Motor Vehicle)</span>
+              <span class="radio-line"><input type="checkbox" id="classTRANS" name="vehicleClass" value="TRANS" /> TRANS (Transport)</span>
+            </div>
+
+            <label style="margin-top:16px;">Blood Group (for licence record)</label>
+            <div class="radio-cluster">
+              <span class="radio-line"><input type="radio" id="bgA" name="bloodGroup" value="A+" /> A+</span>
+              <span class="radio-line"><input type="radio" id="bgB" name="bloodGroup" value="B+" /> B+</span>
+              <span class="radio-line"><input type="radio" id="bgO" name="bloodGroup" value="O+" /> O+</span>
+              <span class="radio-line"><input type="radio" id="bgAB" name="bloodGroup" value="AB+" /> AB+</span>
+            </div>
+            <div class="radio-cluster" style="margin-top:4px;">
+              <span class="radio-line"><input type="radio" id="rhPos" name="rhFactor" value="positive" /> Rh Positive</span>
+              <span class="radio-line"><input type="radio" id="rhNeg" name="rhFactor" value="negative" /> Rh Negative</span>
+            </div>
+          </fieldset>
+        </section>
+
+        <!-- STEP 3 -->
+        <section class="wizard-step" data-step="3" hidden>
+          <fieldset>
+            <legend>Declarations</legend>
+
+            <div class="switch-row">
+              <div id="visionSwitch" class="custom-switch" role="switch" aria-checked="false" tabindex="0"
+                   aria-labelledby="visionSwitchLabel"></div>
+              <label id="visionSwitchLabel" style="margin:0;">I declare my vision meets the prescribed standard</label>
+            </div>
+
+            <div class="switch-row">
+              <div id="commsSwitch" class="custom-switch" role="switch" aria-checked="true" tabindex="0"
+                   aria-labelledby="commsSwitchLabel"></div>
+              <label id="commsSwitchLabel" style="margin:0;">Receive SMS/Email updates about this application</label>
+            </div>
+
+            <label for="medicalNotes" style="margin-top:16px;">Medical Conditions (if any)</label>
+            <textarea id="medicalNotes" name="medicalNotes" rows="3" placeholder="Leave blank if none"></textarea>
+
+            <label style="margin-top:16px;">Organ Donor Pledge</label>
+            <div class="radio-cluster">
+              <span class="radio-line"><input type="radio" id="donorYes" name="organDonor" value="yes" /> Yes, I pledge</span>
+              <span class="radio-line"><input type="radio" id="donorNo" name="organDonor" value="no" checked /> No</span>
+              <span class="radio-line"><input type="radio" id="donorLater" name="organDonor" value="later" /> Decide later</span>
+            </div>
+          </fieldset>
+        </section>
+
+        <!-- STEP 4 -->
+        <section class="wizard-step" data-step="4" hidden>
+          <fieldset>
+            <legend>Review &amp; Submit</legend>
+            <p class="hint" style="color:#333; font-size:12px;">
+              Please review all sections before submitting. Use "Save Draft" to save without submitting,
+              "Reset Form" to clear all entries, or "Submit" to finalize your application.
+            </p>
+            <div id="reviewSummary" style="font-size:12.5px; background:#f7f7f2; border:1px solid #ccc; padding:10px;"></div>
+          </fieldset>
+        </section>
+
+        <div id="resultBox" role="alert"></div>
+
+        <div class="wizard-nav">
+          <button type="button" class="gov-btn" id="prevBtn">&laquo; Previous</button>
+          <div class="three-buttons">
+            <button type="button" class="gov-btn" id="saveDraftBtn">Save Draft</button>
+            <button type="reset" class="gov-btn" id="resetBtn">Reset Form</button>
+            <button type="button" class="gov-btn primary" id="nextBtn">Next &raquo;</button>
+            <button type="submit" class="gov-btn primary" id="submitBtn" hidden>Submit</button>
+          </div>
+        </div>
+      </form>
+      <div class="back-row">
+        <button type="button" class="gov-btn" data-back>&laquo; Back to Eligibility Pre-Check</button>
+      </div>
+    </section>
+
+  </main>
+
+  <aside class="sidebar right-sidebar" aria-label="Notices and resources">
+    <div class="block-title">Circulars &amp; Downloads</div>
+    <ul class="res-list">
+      <li><a data-stub="Form 1A – Application for Driving Licence (PDF)"><span class="pdf-icon">📄</span>Form 1A – Application for DL</a></li>
+      <li><a data-stub="Form 1 – Medical Certificate (PDF)"><span class="pdf-icon">📄</span>Form 1 – Medical Certificate</a></li>
+      <li><a data-stub="Annexure B – RTO Office Codes (PDF)"><span class="pdf-icon">📄</span>Annexure B – RTO Office Codes</a></li>
+      <li><a data-stub="Fee Schedule 2026 (PDF)"><span class="pdf-icon">📄</span>Fee Schedule 2026</a></li>
+    </ul>
+
+    <div class="block-title">Gazette Notifications</div>
+    <ul class="res-list">
+      <li><a data-stub="G.S.R. 441(E) — Amendment to Rule 32">G.S.R. 441(E) — Amendment to Rule 32</a></li>
+      <li><a data-stub="G.S.R. 398(E) — Revised Fee Structure">G.S.R. 398(E) — Revised Fee Structure</a></li>
+      <li><a data-stub="G.S.R. 350(E) — Aadhaar Linkage Mandate">G.S.R. 350(E) — Aadhaar Linkage Mandate</a></li>
+    </ul>
+
+    <div class="block-title">Officer Contact Directory</div>
+    <table class="contact-table">
+      <caption style="text-align:left; font-size:10.5px; padding:4px 5px;">Jurisdictional contacts</caption>
+      <thead>
+        <tr><th scope="col">Office</th><th scope="col">Officer</th><th scope="col">Ext.</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>RTO Central</td><td>R. Subramaniam</td><td>221</td></tr>
+        <tr><td>RTO North</td><td>K. Fernandes</td><td>318</td></tr>
+        <tr><td>RTO South</td><td>A. Iyer</td><td>245</td></tr>
+        <tr><td>Grievance Cell</td><td>Duty Officer</td><td>100</td></tr>
+      </tbody>
+    </table>
+
+    <div class="block-title">Jurisdictional Office Timings</div>
+    <table class="timing-table">
+      <thead>
+        <tr><th scope="col">Day</th><th scope="col">Hours</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Mon–Fri</td><td>10:00–17:30</td></tr>
+        <tr><td>Saturday</td><td>10:00–13:30</td></tr>
+        <tr><td>Sunday</td><td>Closed</td></tr>
+      </tbody>
+    </table>
+
+    <div class="block-title">Frequently Asked Questions</div>
+    <div>
+      <h3 style="margin:0;">
+        <button type="button" class="faq-q" aria-expanded="false" aria-controls="faqPanel1">How long does DL renewal take?</button>
+      </h3>
+      <div class="faq-a" id="faqPanel1" hidden>Typically 2–3 working days after successful submission, subject to RTO server load.</div>
+
+      <h3 style="margin:0;">
+        <button type="button" class="faq-q" aria-expanded="false" aria-controls="faqPanel2">What if my RTO code is rejected?</button>
+      </h3>
+      <div class="faq-a" id="faqPanel2" hidden>Re-verify the code against Annexure B and re-submit. Repeated rejections should be escalated to the Grievance Cell.</div>
+
+      <h3 style="margin:0;">
+        <button type="button" class="faq-q" aria-expanded="false" aria-controls="faqPanel3">Can I save my application midway?</button>
+      </h3>
+      <div class="faq-a" id="faqPanel3" hidden>Yes, use the "Save Draft" button on the application form. Drafts are not auto-saved.</div>
+    </div>
+  </aside>
+</div>
+
+<footer class="gov-footer">
+  This is a simulated portal built for testing purposes (Cognia obstacle course). Not affiliated with any government body.
+</footer>
+
+<!-- Interrupt modal -->
+<div class="modal-overlay" id="interruptModal">
+  <div class="modal-box">
+    <h2>Session Extension Available</h2>
+    <p>Your session is about to expire. Would you like to extend it by 10 minutes to continue your application?</p>
+    <button type="button" class="gov-btn primary" id="extendSessionBtn">Extend Session</button>
+    <button type="button" class="gov-btn" id="dismissModalBtn">Dismiss</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ==========================================================
+  // Marquee notices from backend
+  // ==========================================================
+  fetch('/api/notices')
+    .then((r) => r.json())
+    .then((data) => {
+      document.getElementById('noticeMarquee').textContent = data.notices.join('   |   ');
+    })
+    .catch(() => {
+      document.getElementById('noticeMarquee').textContent = 'URGENT NOTICES: Unable to load live notices.';
+    });
+
+  // ==========================================================
+  // Session countdown (cosmetic)
+  // ==========================================================
+  let remaining = 298;
+  const countdownEl = document.getElementById('sessionCountdown');
+  setInterval(() => {
+    remaining = Math.max(0, remaining - 1);
+    const m = String(Math.floor(remaining / 60)).padStart(2, '0');
+    const s = String(remaining % 60).padStart(2, '0');
+    countdownEl.textContent = `${m}:${s}`;
+  }, 1000);
+
+  // ==========================================================
+  // Interrupt modal: fires once, 6s after load
+  // ==========================================================
+  setTimeout(() => {
+    document.getElementById('interruptModal').classList.add('visible');
+  }, 6000);
+  document.getElementById('extendSessionBtn').addEventListener('click', () => {
+    remaining = 298;
+    document.getElementById('interruptModal').classList.remove('visible');
+  });
+  document.getElementById('dismissModalBtn').addEventListener('click', () => {
+    document.getElementById('interruptModal').classList.remove('visible');
+  });
+
+  // ==========================================================
+  // Custom switch elements (role="switch")
+  // ==========================================================
+  document.querySelectorAll('.custom-switch').forEach((sw) => {
+    sw.addEventListener('click', toggleSwitch);
+    sw.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSwitch.call(sw); }
+    });
+  });
+  function toggleSwitch() {
+    const isOn = this.getAttribute('aria-checked') === 'true';
+    this.setAttribute('aria-checked', String(!isOn));
+  }
+
+  // ==========================================================
+  // Font resizer (A- / A / A+)
+  // ==========================================================
+  let fontScale = 100;
+  function applyFontScale() {
+    document.documentElement.style.fontSize = fontScale + '%';
+  }
+  document.getElementById('fontIncrease').addEventListener('click', () => {
+    fontScale = Math.min(140, fontScale + 10);
+    applyFontScale();
+  });
+  document.getElementById('fontDecrease').addEventListener('click', () => {
+    fontScale = Math.max(80, fontScale - 10);
+    applyFontScale();
+  });
+  document.getElementById('fontReset').addEventListener('click', () => {
+    fontScale = 100;
+    applyFontScale();
+  });
+
+  // ==========================================================
+  // Language selector (Updates header to prove functionality)
+  // ==========================================================
+  document.getElementById('langSelect').addEventListener('change', (e) => {
+    const lang = e.target.selectedOptions[0].textContent;
+    document.getElementById('mainHeaderTitle').textContent = `e-RTO Citizen Services Portal (${lang} Mode)`;
+  });
+
+  // ==========================================================
+  // Login portal tabs (role="tab") & Simulation
+  // ==========================================================
+  const loginTabs = [
+    { tab: 'tab-citizen', panel: 'panel-citizen' },
+    { tab: 'tab-officer', panel: 'panel-officer' },
+    { tab: 'tab-rto', panel: 'panel-rto' }
+  ];
+  function selectLoginTab(tabId) {
+    loginTabs.forEach(({ tab, panel }) => {
+      const tabEl = document.getElementById(tab);
+      const panelEl = document.getElementById(panel);
+      const isSelected = tab === tabId;
+      tabEl.setAttribute('aria-selected', String(isSelected));
+      tabEl.tabIndex = isSelected ? 0 : -1;
+      panelEl.hidden = !isSelected;
+    });
+  }
+  loginTabs.forEach(({ tab }) => {
+    document.getElementById(tab).addEventListener('click', () => selectLoginTab(tab));
+  });
+  
+  // Login Form Handlers
+  ['citizenLoginForm', 'officerLoginForm', 'rtoLoginForm'].forEach((formId) => {
+    document.getElementById(formId).addEventListener('submit', (e) => {
+      e.preventDefault();
+      e.target.innerHTML = `<div style="color:green; font-weight:bold; padding: 10px 0;">Authentication Successful. Session Active.</div>`;
+      setTimeout(() => {
+          document.getElementById('loginPanelsContainer').style.display = 'none';
+      }, 1500);
+    });
+  });
+
+  // ==========================================================
+  // Left sidebar accordion
+  // ==========================================================
+  document.querySelectorAll('.acc-header').forEach((header) => {
+    header.addEventListener('click', () => {
+      const panelId = header.getAttribute('aria-controls');
+      const panel = document.getElementById(panelId);
+      const expanded = header.getAttribute('aria-expanded') === 'true';
+      header.setAttribute('aria-expanded', String(!expanded));
+      panel.hidden = expanded;
+    });
+  });
+
+  // ==========================================================
+  // Right sidebar FAQ accordion
+  // ==========================================================
+  document.querySelectorAll('.faq-q').forEach((q) => {
+    q.addEventListener('click', () => {
+      const panelId = q.getAttribute('aria-controls');
+      const panel = document.getElementById(panelId);
+      const expanded = q.getAttribute('aria-expanded') === 'true';
+      q.setAttribute('aria-expanded', String(!expanded));
+      panel.hidden = expanded;
+    });
+  });
+
+  // ==========================================================
+  // Navigation maze: screen stack + breadcrumb + Dynamic Router
+  // ==========================================================
+  const screens = {
+    'screen-hub': 'Home',
+    'screen-citizen-services': 'Citizen Services',
+    'screen-licensing-management': 'Licensing Management',
+    'screen-dl-services': 'Services on Driving Licence (DL-Services)',
+    'screen-jurisdiction-gateway': 'Jurisdiction / State & RTO Selection',
+    'screen-eligibility-precheck': 'Eligibility Pre-Check',
+    'screen-dl-form': 'Driving Licence Application / Renewal',
+    'screen-generic-service': 'Citizen Service'
+  };
+  
+  const breadcrumbTrailLabels = {
+    'screen-hub': ['Home'],
+    'screen-citizen-services': ['Home', 'Citizen Services'],
+    'screen-licensing-management': ['Home', 'Citizen Services', 'Licensing Management'],
+    'screen-dl-services': ['Home', 'Citizen Services', 'Licensing Management', 'DL-Services'],
+    'screen-jurisdiction-gateway': ['Home', 'Citizen Services', 'Licensing Management', 'DL-Services', 'Jurisdiction Selection'],
+    'screen-eligibility-precheck': ['Home', 'Citizen Services', 'Licensing Management', 'DL-Services', 'Jurisdiction Selection', 'Eligibility Pre-Check'],
+    'screen-dl-form': ['Home', 'Citizen Services', 'Licensing Management', 'DL-Services', 'Jurisdiction Selection', 'Eligibility Pre-Check', 'Application Form']
+  };
+
+  const screenStack = ['screen-hub'];
+
+  function renderBreadcrumb(screenId) {
+    const trail = breadcrumbTrailLabels[screenId] || ['Home'];
+    document.getElementById('breadcrumb').innerHTML = trail
+      .map((label, i) => (i === trail.length - 1 ? `<strong>${label}</strong>` : `<span>${label}</span>`))
+      .join(' &raquo; ');
+  }
+
+  function showScreen(screenId) {
+    Object.keys(screens).forEach((id) => {
+      const el = document.getElementById(id);
+      if(el) el.hidden = id !== screenId;
+    });
+    renderBreadcrumb(screenId);
+    document.getElementById('mainContent').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function navigateTo(screenId) {
+    if(screenId === 'screen-hub') {
+        screenStack.length = 0;
+    }
+    screenStack.push(screenId);
+    showScreen(screenId);
+  }
+
+  function goBack() {
+    if (screenStack.length > 1) {
+      screenStack.pop();
+      showScreen(screenStack[screenStack.length - 1]);
+    }
+  }
+
+  document.querySelectorAll('[data-back]').forEach((btn) => {
+    btn.addEventListener('click', goBack);
+  });
+
+  // Primary Path Navigation
+  document.getElementById('hubCitizenServicesTile').addEventListener('click', () => navigateTo('screen-citizen-services'));
+  document.getElementById('toLicensingManagementBtn').addEventListener('click', () => navigateTo('screen-licensing-management'));
+  document.getElementById('sidebarDLServicesLink').addEventListener('click', (e) => {
+    e.preventDefault();
+    // Sidebar shortcut jumps straight to the DL-Services drill screen, resetting the trail.
+    screenStack.length = 0;
+    screenStack.push('screen-hub', 'screen-citizen-services', 'screen-licensing-management', 'screen-dl-services');
+    showScreen('screen-dl-services');
+  });
+  document.getElementById('toDlServicesBtn').addEventListener('click', () => navigateTo('screen-dl-services'));
+  document.getElementById('toJurisdictionGatewayBtn').addEventListener('click', () => navigateTo('screen-jurisdiction-gateway'));
+
+  // ==========================================================
+  // Dynamic Stub Routing (Makes all other links functional)
+  // ==========================================================
+  document.querySelectorAll('[data-stub]').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      const serviceName = el.getAttribute('data-stub');
+      
+      if(serviceName === 'Home') {
+          navigateTo('screen-hub');
+          return;
+      }
+      
+      // Simulate PDF Downloads
+      if (serviceName.includes('PDF') || serviceName.includes('G.S.R.')) {
+          alert(`[SIMULATION]\nOpening Document Viewer for:\n${serviceName}\n\nFile downloaded successfully.`);
+          return;
+      }
+
+      // Route all other clicks to the generic form
+      document.getElementById('genericServiceTitle').textContent = serviceName;
+      document.getElementById('genericResultBox').style.display = 'none';
+      document.getElementById('genericServiceForm').reset();
+      
+      // Dynamically build breadcrumbs for this generic route
+      const previousScreen = screenStack[screenStack.length - 1];
+      const baseTrail = breadcrumbTrailLabels[previousScreen] || ['Home'];
+      breadcrumbTrailLabels['screen-generic-service'] = [...baseTrail, serviceName];
+
+      navigateTo('screen-generic-service');
+    });
+  });
+
+  // Generic Form Submission
+  document.getElementById('genericServiceForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const rb = document.getElementById('genericResultBox');
+      rb.style.display = 'block';
+      rb.textContent = 'Application/Request successfully submitted to the RTO queue.';
+  });
+
+  // ==========================================================
+  // Jurisdiction Gateway: dependent State -> RTO selects
+  // ==========================================================
+  const rtoOfficesByState = {
+    KA: [ { code: 'KA-05', name: 'RTO Bengaluru Central (KA-05)' }, { code: 'KA-19', name: 'RTO Mangaluru (KA-19)' } ],
+    TN: [ { code: 'TN-09', name: 'RTO Chennai Central (TN-09)' }, { code: 'TN-22', name: 'RTO Coimbatore North (TN-22)' } ],
+    MH: [ { code: 'MH-01', name: 'RTO Mumbai Central (MH-01)' }, { code: 'MH-12', name: 'RTO Pune (MH-12)' } ],
+    DL: [ { code: 'DL-07', name: 'RTO Delhi South (DL-07)' }, { code: 'DL-13', name: 'RTO Delhi West (DL-13)' } ],
+    UP: [ { code: 'UP-32', name: 'RTO Lucknow (UP-32)' }, { code: 'UP-16', name: 'RTO Ghaziabad (UP-16)' } ]
+  };
+  const gatewayState = document.getElementById('gatewayState');
+  const gatewayRto = document.getElementById('gatewayRto');
+  const gatewayRtoCodeConfirm = document.getElementById('gatewayRtoCodeConfirm');
+
+  gatewayState.addEventListener('change', () => {
+    const offices = rtoOfficesByState[gatewayState.value] || [];
+    gatewayRtoCodeConfirm.value = '';
+    if (!offices.length) {
+      gatewayRto.innerHTML = '<option value="">-- Select State First --</option>';
+      gatewayRto.disabled = true;
+      return;
+    }
+    gatewayRto.disabled = false;
+    gatewayRto.innerHTML = '<option value="">-- Select RTO Office --</option>' +
+      offices.map((o) => `<option value="${o.code}">${o.name}</option>`).join('');
+  });
+
+  gatewayRto.addEventListener('change', () => {
+    gatewayRtoCodeConfirm.value = gatewayRto.value || '';
+  });
+
+  const gatewayResult = document.getElementById('gatewayResult');
+  document.getElementById('jurisdictionForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (!gatewayState.value || !gatewayRto.value) {
+      gatewayResult.className = 'error';
+      gatewayResult.textContent = 'Please select both a State and an RTO Office before continuing.';
+      return;
+    }
+    gatewayResult.className = 'success';
+    gatewayResult.textContent = `Jurisdiction confirmed: ${gatewayRto.selectedOptions[0].textContent}.`;
+    // Pre-fill the RTO Office Code field on the actual application form.
+    document.getElementById('rtoCode').value = gatewayRto.value;
+    setTimeout(() => navigateTo('screen-eligibility-precheck'), 500);
+  });
+
+  // ==========================================================
+  // Eligibility Pre-Check
+  // ==========================================================
+  const precheckResult = document.getElementById('precheckResult');
+  document.getElementById('precheckForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const answered = ['preQ1', 'preQ2', 'preQ3'].every(
+      (name) => form.querySelector(`input[name="${name}"]:checked`)
+    );
+    if (!answered) {
+      precheckResult.className = 'error';
+      precheckResult.textContent = 'All three questions must be answered before proceeding.';
+      return;
+    }
+    precheckResult.className = 'success';
+    precheckResult.textContent = 'Pre-check complete. Redirecting to the application form…';
+    setTimeout(() => navigateTo('screen-dl-form'), 500);
+  });
+
+  // ==========================================================
+  // Dynamic field injection based on Application Type
+  // ==========================================================
+  const licenceType = document.getElementById('licenceType');
+  const dynamicWrap = document.getElementById('dynamicLicenceFields');
+  licenceType.addEventListener('change', () => {
+    dynamicWrap.innerHTML = '';
+    if (licenceType.value === 'renewal') {
+      dynamicWrap.innerHTML = `
+        <label for="oldLicenceNumber">Existing Licence Number <span style="color:#b30000;">*</span></label>
+        <input type="text" id="oldLicenceNumber" name="oldLicenceNumber" placeholder="e.g. KA0520230012345" required />
+        <label for="expiryDate">Expiry Date of Existing Licence</label>
+        <input type="date" id="expiryDate" name="expiryDate" />
+      `;
+    } else if (licenceType.value === 'commercial') {
+      dynamicWrap.innerHTML = `
+        <label for="endorsementClass">Endorsement Class <span style="color:#b30000;">*</span></label>
+        <select id="endorsementClass" name="endorsementClass" required>
+          <option value="">-- Select --</option>
+          <option value="goods">Transport of Goods</option>
+          <option value="passenger">Transport of Passengers</option>
+        </select>
+        <label for="badgeNumber">Public Service Badge Number</label>
+        <input type="text" id="badgeNumber" name="badgeNumber" />
+      `;
+    } else if (licenceType.value === 'duplicate') {
+      dynamicWrap.innerHTML = `
+        <label for="lossReason">Reason for Duplicate <span style="color:#b30000;">*</span></label>
+        <select id="lossReason" name="lossReason" required>
+          <option value="">-- Select --</option>
+          <option value="lost">Lost</option>
+          <option value="damaged">Damaged</option>
+          <option value="stolen">Stolen (FIR required)</option>
+        </select>
+      `;
+    }
+  });
+
+  // ==========================================================
+  // Wizard step navigation (within the DL application form)
+  // ==========================================================
+  const steps = Array.from(document.querySelectorAll('.wizard-step'));
+  const trackerSteps = Array.from(document.querySelectorAll('#stepTracker .step'));
+  let currentStep = 1;
+
+  function renderStep() {
+    steps.forEach((s) => { s.hidden = Number(s.dataset.step) !== currentStep; });
+    trackerSteps.forEach((t) => {
+      const n = Number(t.dataset.step);
+      t.classList.toggle('active', n === currentStep);
+      t.classList.toggle('done', n < currentStep);
+    });
+    document.getElementById('prevBtn').disabled = currentStep === 1;
+    document.getElementById('nextBtn').hidden = currentStep === steps.length;
+    document.getElementById('submitBtn').hidden = currentStep !== steps.length;
+    if (currentStep === steps.length) renderReview();
+  }
+
+  function renderReview() {
+    const data = collectFormData();
+    const rows = Object.entries(data)
+      .filter(([, v]) => v !== '' && v !== null && (!Array.isArray(v) || v.length))
+      .map(([k, v]) => `<div><strong>${k}:</strong> ${Array.isArray(v) ? v.join(', ') : v}</div>`)
+      .join('');
+    document.getElementById('reviewSummary').innerHTML = rows || '<em>No data entered yet.</em>';
+  }
+
+  document.getElementById('nextBtn').addEventListener('click', () => {
+    if (currentStep < steps.length) { currentStep += 1; renderStep(); }
+  });
+  document.getElementById('prevBtn').addEventListener('click', () => {
+    if (currentStep > 1) { currentStep -= 1; renderStep(); }
+  });
+  trackerSteps.forEach((t) => {
+    t.style.cursor = 'pointer';
+    t.addEventListener('click', () => { currentStep = Number(t.dataset.step); renderStep(); });
+  });
+
+  // ==========================================================
+  // Form data collection
+  // ==========================================================
+  function collectFormData() {
+    const form = document.getElementById('dlForm');
+    const fd = new FormData(form);
+    const data = {};
+    for (const [key, value] of fd.entries()) {
+      if (data[key] !== undefined) {
+        data[key] = Array.isArray(data[key]) ? [...data[key], value] : [data[key], value];
+      } else {
+        data[key] = value;
+      }
+    }
+    // Custom switches aren't real form fields, so read them explicitly.
+    data.visionDeclared = document.getElementById('visionSwitch').getAttribute('aria-checked') === 'true';
+    data.smsUpdates = document.getElementById('commsSwitch').getAttribute('aria-checked') === 'true';
+    return data;
+  }
+
+  // ==========================================================
+  // Result rendering
+  // ==========================================================
+  const resultBox = document.getElementById('resultBox');
+  function showResult(kind, html) {
+    resultBox.className = kind;
+    resultBox.innerHTML = html;
+  }
+
+  // ==========================================================
+  // Save Draft
+  // ==========================================================
+  document.getElementById('saveDraftBtn').addEventListener('click', () => {
+    fetch('/api/save-draft', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(collectFormData())
+    })
+      .then((r) => r.json())
+      .then((data) => showResult('success', `Draft saved at ${new Date(data.savedAt).toLocaleTimeString()}.`));
+  });
+
+  // ==========================================================
+  // Submit
+  // ==========================================================
+  document.getElementById('dlForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    showResult('loading', 'Submitting application to RTO server, please wait…');
+
+    fetch('/api/submit-application', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(collectFormData())
+    })
+      .then(async (r) => {
+        const data = await r.json();
+        if (r.ok && data.ok) {
+          showResult('success', `Application submitted successfully. Your Application ID is <strong>${data.applicationId}</strong>. Please note this for future reference.`);
+        } else {
+          showResult('error', `Submission failed [${data.code || 'ERROR'}]: ${data.message || 'Unknown error.'}`);
+        }
+      })
+      .catch(() => showResult('error', 'Network error contacting RTO server. Please try again.'));
+  });
+
+  // ==========================================================
+  // Init
+  // ==========================================================
+  renderStep();
+  showScreen('screen-hub');
+})();
+</script>
+
+</body>
+</html>
