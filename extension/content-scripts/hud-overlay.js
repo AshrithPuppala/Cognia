@@ -380,13 +380,4 @@
   // ---------------------------------------------------------------------
   window.renderHUD = renderHUD;
   window.__cogniaTeardownHUD = teardownHUD;
-
-  // ---------------------------------------------------------------------
-  // 10. STANDALONE TEST — comment this out once real data is wired in.
-  // ---------------------------------------------------------------------
-  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === "UPDATE_HUD") {
-    renderHUD(request.data);
-  }
-});
 })();

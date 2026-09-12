@@ -5,23 +5,26 @@
   <style>
     body { font-family: sans-serif; padding: 15px; background: #1e1e2e; color: #fff; width: 280px; margin: 0; }
     h3 { margin-top: 0; font-size: 15px; }
+    label { display: block; font-size: 12px; margin-top: 10px; color: #cdd6f4; }
+    select { width: 100%; margin-top: 4px; padding: 6px; border-radius: 4px; }
     textarea { width: 95%; height: 50px; margin-top: 8px; border-radius: 4px; padding: 6px; }
     .start-btn { margin-top: 12px; padding: 10px; background: #a6e3a1; border: none; font-weight: bold; cursor: pointer; border-radius: 4px; width: 100%; color: #11111b; }
   </style>
 </head>
 <body>
-  <!-- Moved these inside the body -->
-  <label for="access-profile">What kind of support do you need?</label>
-  <select id="access-profile">
-    <option value="unsure">Not sure</option>
+  <h3>What kind of support do you need?</h3>
+  <label for="accessibility-profile">Accessibility profile</label>
+  <select id="accessibility-profile">
     <option value="low_vision">Low vision</option>
-    <option value="motor">Motor / mobility</option>
-    <option value="cognitive_load">Reduce complexity</option>
+    <option value="motor">Motor difficulty</option>
+    <option value="cognitive_load">Cognitive load</option>
+    <option value="unsure" selected>Not sure</option>
   </select>
 
-  <h3>What are you trying to do?</h3>
+  <label for="user-intent">What are you trying to do?</label>
   <textarea id="user-intent" placeholder="e.g., I need to renew my driver's licence."></textarea>
-  <button class="start-btn" id="start-btn">Start Guide →</button>
+
+  <button class="start-btn" id="start-btn">Start Guide &rarr;</button>
   <script src="popup.js"></script>
 </body>
 </html>
