@@ -3,9 +3,9 @@ const path = require('path');
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 // Swap to 'llama-3.1-8b-instant' while iterating for speed;
-// use 'llama-3.3-70b-versatile' for the real demo (better at following
+// use 'openai/gpt-oss-120b' for the real demo (better at following
 // the plain-language rewrite instruction).
-const MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+const MODEL = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
 
 const SYSTEM_PROMPT = fs.readFileSync(
   path.join(__dirname, '../prompts/reasoner-system-prompt.md'),
