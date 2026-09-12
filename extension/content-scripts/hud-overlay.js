@@ -156,9 +156,13 @@
     Object.assign(overlay.style, {
       position: 'fixed',
       inset: '0',
-      background: `rgba(0,0,0,${config.overlayOpacity})`,
+      // Transparent on purpose: the spotlight child's box-shadow is what
+      // paints all the darkness (see buildSpotlight/positionSpotlight).
+      // If this container also had an opaque background, it would sit
+      // behind the spotlight's near-transparent fill and show through
+      // as solid black with no visible cutout.
+      background: 'transparent',
       zIndex: '2147483000',
-      transition: 'background 0.25s ease',
       pointerEvents: 'auto',
     });
     return overlay;
@@ -203,6 +207,8 @@
       // overlay's darkness while the overlay div behind it stays dark.
       boxShadow: `0 0 0 2000px rgba(0,0,0,${config.overlayOpacity}), ${config.spotlightGlow}`,
       background: 'rgba(255,255,255,0.02)',
+      border: '2px solid rgba(255,255,255,0.85)',
+      filter: 'brightness(1.05)',
     });
   }
 
