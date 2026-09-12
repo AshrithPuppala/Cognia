@@ -1,30 +1,87 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://cognia.dev/schemas/page-state.schema.json",
   "title": "PageState",
+  "description": "Semantic map of every interactive element on a live webpage, produced by the Page Mapper module.",
   "type": "object",
-  "required": ["goal", "url", "elements", "accessibility_profile"],
+  "required": ["goal", "url", "title", "timestamp", "viewport", "elements"],
+  "additionalProperties": false,
   "properties": {
-    "goal": { "type": "string" },
+    "goal": { "type": ["string", "null"] },
     "url": { "type": "string" },
-    "accessibility_profile": {
-      "type": "string",
-      "enum": ["low_vision", "motor", "cognitive_load", "unsure"],
-      "description": "Set once by the user in the popup (Person 4), passed through unchanged by Page Mapper and PII Guard. Read by the backend to set baseline support_level and read_aloud."
+    "title": { "type": "string" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "viewport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["width", "height", "scrollX", "scrollY"],
+      "properties": {
+        "width": { "type": "number" },
+        "height": { "type": "number" },
+        "scrollX": { "type": "number" },
+        "scrollY": { "type": "number" }
+      }
     },
     "elements": {
       "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["id", "role", "label", "state", "rect"],
-        "properties": {
-          "id": { "type": "string" },
-          "role": { "type": "string" },
-          "label": { "type": "string" },
-          "state": { "type": "string" },
-          "rect": { "type": "array", "items": { "type": "number" }, "minItems": 4, "maxItems": 4 }
-        }
+      "items": { "$ref": "#/definitions/element" }
+    }
+  },
+  "definitions": {
+    "element": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "tag",
+        "role",
+        "label",
+        "state",
+        "rect",
+        "visible",
+        "obscured",
+        "interactable"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "tag": { "type": "string" },
+        "role": { "type": "string" },
+        "label": { "type": ["string", "null"] },
+        "placeholder": { "type": ["string", "null"] },
+        "value": { "type": ["string", "boolean", "null"] },
+        "state": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["disabled", "filled", "required", "readOnly", "focused", "expanded"],
+          "properties": {
+            "disabled": { "type": "boolean" },
+            "filled": { "type": "boolean" },
+            "required": { "type": "boolean" },
+            "readOnly": { "type": "boolean" },
+            "focused": { "type": "boolean" },
+            "expanded": { "type": ["boolean", "null"] },
+            "checked": { "type": ["boolean", "null"] },
+            "selectedOptionText": { "type": ["string", "null"] }
+          }
+        },
+        "rect": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["x", "y", "width", "height"],
+          "properties": {
+            "x": { "type": "number" },
+            "y": { "type": "number" },
+            "width": { "type": "number" },
+            "height": { "type": "number" }
+          }
+        },
+        "visible": { "type": "boolean" },
+        "obscured": { 
+          "description": "True if covered by an overlay, modal, or z-index blocker.",
+          "type": "boolean" 
+        },
+        "interactable": { "type": "boolean" }
       }
-    },
-    "history": { "type": "array", "items": { "type": "string" } }
+    }
   }
 }
