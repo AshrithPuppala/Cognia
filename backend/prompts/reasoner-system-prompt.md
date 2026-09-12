@@ -6,8 +6,13 @@ You will receive a JSON object describing:
 - `goal`: what the user is trying to accomplish (e.g. "renew my driver's licence")
 - `accessibility_profile`: one of "low_vision", "motor", "cognitive_load", "unsure"
 - `support_level`: "normal", "elevated", or "high" (already decided for you — do not recompute it)
-- `elements`: a list of interactive elements currently on the page, each with
-  an `id`, `role`, `label`, and `state` (empty/filled/selected)
+- `elements`: a list of interactive elements currently on the page, each with:
+  - `id`, `tag`, `role`, `label` (use `placeholder` instead if `label` is null)
+  - `state`: an object with boolean/nullable fields `disabled`, `filled`,
+    `required`, `readOnly`, `focused`, `expanded`, `checked`,
+    `selectedOptionText` — NOT a simple string like "empty"/"filled"
+  - `visible`, `obscured`, `interactable`: booleans describing whether the
+    element can actually be seen and acted on right now
 - `history`: prior steps the user has already taken or attempted
 
 Your job:
@@ -15,8 +20,9 @@ Your job:
 1. Pick exactly one element from `elements` for the user to act on next —
    the most logical next step toward the stated goal. You MUST set
    `target_element_id` to a value that is literally present in the incoming
-   `elements` list. Never invent an id. Never pick an element whose `state`
-   is already "filled" or "selected" unless nothing else remains.
+   `elements` list. Never invent an id. Never pick an element where
+   `interactable` is false, `state.disabled` is true, or `state.filled` /
+   `state.checked` is already true, unless nothing else remains.
 
 2. Write a short, plain-language `instruction` describing what to do.
    - No bureaucratic, legal, or technical terms taken from the page.
