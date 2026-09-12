@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "Cognia",
+  "version": "0.1.0",
+  "description": "AI cognitive accessibility layer for complex web portals",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": ["<all_urls>"],
+  "background": { "service_worker": "background/service-worker.js" },
+  "action": { "default_popup": "popup/popup.html" },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content-scripts/page-mapper.js", "content-scripts/pii-guard.js", "content-scripts/hud-overlay.js"],
+      "css": ["styles/hud.css"]
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GuidanceAction",
+  "type": "object",
+  "required": ["step", "total_steps", "target_element_id", "instruction", "dim_all_except", "support_level", "read_aloud"],
+  "properties": {
+    "step": { "type": "integer" },
+    "total_steps": { "type": "integer" },
+    "target_element_id": { "type": "string" },
+    "instruction": {
+      "type": "string",
+      "description": "Must be plain, simple language — no jargon, short sentences. This is enforced in the reasoner's system prompt, not just a style preference."
+    },
+    "dim_all_except": { "type": "array", "items": { "type": "string" } },
+    "support_level": { "type": "string", "enum": ["normal", "elevated", "high"] },
+    "read_aloud": {
+      "type": "boolean",
+      "description": "Set true by the backend when accessibility_profile is 'low_vision' or 'unsure', or when support_level is 'elevated'/'high'. HUD calls speechSynthesis on the instruction text when this is true."
+    }
+  }
+}

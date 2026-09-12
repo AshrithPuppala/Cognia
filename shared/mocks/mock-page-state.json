@@ -1,0 +1,10 @@
+{
+  "goal": "renew my driver's licence",
+  "url": "gov-services.example/renew-licence",
+  "accessibility_profile": "unsure",
+  "elements": [
+    { "id": "el_12", "role": "textbox", "label": "Full Name", "state": "empty", "rect": [40, 120, 300, 40] },
+    { "id": "el_13", "role": "select", "label": "Department", "state": "empty", "rect": [40, 170, 300, 40] }
+  ],
+  "history": ["selected licence type", "failed date field twice"]
+}
