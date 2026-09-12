@@ -380,4 +380,4 @@
   // ---------------------------------------------------------------------
   window.renderHUD = renderHUD;
   window.__cogniaTeardownHUD = teardownHUD;
-
+})();
