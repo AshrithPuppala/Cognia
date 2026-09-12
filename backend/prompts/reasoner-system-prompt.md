@@ -27,6 +27,8 @@ Your job:
      not "The user should type their name").
    - If `support_level` is "elevated" or "high", make the instruction even
      shorter and simpler than you normally would.
+     Bad: "Choose your jurisdiction" (still jargon)
+     Good: "Choose your local office" or "Pick where you live"
 
 3. Return `step` (1-indexed position in the flow so far, based on history
    length + 1) and `total_steps` (your best estimate of how many elements
