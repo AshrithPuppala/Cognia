@@ -26,17 +26,17 @@
 
   const HUD_OVERLAY_ID = 'cognia-hud-overlay';
 
-function isInsideHudOverlay(node) {
-  if (!node) return false;
-  // Text nodes / non-Element nodes don't have closest() — walk up via parentElement.
-  const el = node.nodeType === 1 ? node : node.parentElement;
-  if (!el || !el.closest) return false;
-  return !!el.closest(`#${HUD_OVERLAY_ID}`);
-}
+  function isInsideHudOverlay(node) {
+    if (!node) return false;
+    // Text nodes / non-Element nodes don't have closest() — walk up via parentElement.
+    const el = node.nodeType === 1 ? node : node.parentElement;
+    if (!el || !el.closest) return false;
+    return !!el.closest(`#${HUD_OVERLAY_ID}`);
+  }
 
-function isHudOverlayNode(node) {
-  return node && node.nodeType === 1 && node.id === HUD_OVERLAY_ID;
-}
+  function isHudOverlayNode(node) {
+    return node && node.nodeType === 1 && node.id === HUD_OVERLAY_ID;
+  }
 
   // -- Element discovery (Now with Shadow DOM piercing) -------------------
 
@@ -49,10 +49,10 @@ function isHudOverlayNode(node) {
 
   function findInteractiveElements(root) {
     let elements = [];
-    
+
     // 1. Get standard DOM elements
     elements.push(...Array.from(root.querySelectorAll(INTERACTIVE_SELECTOR)));
-    
+
     // 2. Recursively find and pierce Shadow DOMs
     const allNodes = root.querySelectorAll('*');
     for (const node of allNodes) {
@@ -60,7 +60,7 @@ function isHudOverlayNode(node) {
         elements.push(...findInteractiveElements(node.shadowRoot));
       }
     }
-    
+
     // De-dupe
     return Array.from(new Set(elements));
   }
@@ -140,7 +140,7 @@ function isHudOverlayNode(node) {
   function getState(el) {
     const tag = el.tagName.toLowerCase();
     const type = (el.getAttribute('type') || '').toLowerCase();
-    
+
     // Detect Accordion / Menu expanded states
     const ariaExpanded = el.getAttribute('aria-expanded');
     let expanded = null;
@@ -166,8 +166,8 @@ function isHudOverlayNode(node) {
       state.checked = !!el.checked;
       state.filled = !!el.checked;
     } else if (el.getAttribute('role') === 'switch') {
-       state.checked = el.getAttribute('aria-checked') === 'true';
-       state.filled = true;
+      state.checked = el.getAttribute('aria-checked') === 'true';
+      state.filled = true;
     } else if (tag === 'textarea' || tag === 'input') {
       state.filled = el.value != null && String(el.value).trim() !== '';
     } else if (el.isContentEditable) {
@@ -210,7 +210,7 @@ function isHudOverlayNode(node) {
   function isObscured(el, rect, visible) {
     if (!visible) return false; // Irrelevant if not visible
     const doc = el.ownerDocument || document;
-    
+
     // Check the center point of the element
     const centerX = rect.x + (rect.width / 2);
     const centerY = rect.y + (rect.height / 2);
@@ -218,17 +218,17 @@ function isHudOverlayNode(node) {
     // If point is outside viewport, it's not strictly obscured, just off-screen
     const win = doc.defaultView;
     if (centerX < 0 || centerX > win.innerWidth || centerY < 0 || centerY > win.innerHeight) {
-        return false; 
+      return false;
     }
 
     const topmostElement = doc.elementFromPoint(centerX, centerY);
     if (!topmostElement) return false;
 
-    // It is obscured if the topmost element is NOT the element itself, 
+    // It is obscured if the topmost element is NOT the element itself,
     // AND NOT a child of the element, AND NOT a parent (like a transparent wrapper).
     const isSelfOrDescendant = el.contains(topmostElement);
     const isAncestor = topmostElement.contains(el);
-    
+
     return !isSelfOrDescendant && !isAncestor;
   }
 
@@ -307,10 +307,13 @@ function isHudOverlayNode(node) {
     lastGoal = goal || null;
     if (observer) return;
 
-        observer = new MutationObserver((mutationsList) => {
+    observer = new MutationObserver((mutationsList) => {
       const allMutationsAreHudRelated = mutationsList.every((mutation) => {
+        // Case A: attribute/characterData change happened on or inside the overlay.
         if (isInsideHudOverlay(mutation.target)) return true;
 
+        // Case B: childList change — check whether every added/removed node
+        // is the overlay itself or lives inside it.
         if (mutation.type === 'childList') {
           const addedAreHud = Array.from(mutation.addedNodes).every(
             (n) => isHudOverlayNode(n) || isInsideHudOverlay(n)
@@ -318,6 +321,8 @@ function isHudOverlayNode(node) {
           const removedAreHud = Array.from(mutation.removedNodes).every(
             (n) => isHudOverlayNode(n) || isInsideHudOverlay(n)
           );
+          // Also: if the mutation.target itself is inside the overlay (e.g.
+          // overlay's own children being appended), treat as HUD-related too.
           const targetIsHud = isInsideHudOverlay(mutation.target);
           return (addedAreHud && removedAreHud) || targetIsHud;
         }
@@ -327,22 +332,13 @@ function isHudOverlayNode(node) {
 
       if (allMutationsAreHudRelated) {
         console.log('[cognia] ignoring HUD-only mutation batch');
-        return;
+        return; // ignore our own HUD churn entirely
       }
       console.log('[cognia] rescan triggered by non-HUD mutation', mutationsList);
 
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => rescanAndNotify(lastGoal), debounceMs);
     });
-
-    if (allMutationsAreHudRelated) return; // ignore our own HUD churn entirely
-
-  clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => rescanAndNotify(lastGoal), debounceMs);
-});
-  clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => rescanAndNotify(lastGoal), debounceMs);
-});
 
     observer.observe(global.document.documentElement, {
       childList: true, subtree: true, attributes: true,
@@ -354,7 +350,7 @@ function isHudOverlayNode(node) {
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => rescanAndNotify(lastGoal), debounceMs);
     }, true);
-    
+
     global.document.addEventListener('change', () => {
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => rescanAndNotify(lastGoal), debounceMs);
