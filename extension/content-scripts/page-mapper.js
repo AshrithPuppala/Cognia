@@ -24,6 +24,20 @@
     return id;
   }
 
+  const HUD_OVERLAY_ID = 'cognia-hud-overlay';
+
+function isInsideHudOverlay(node) {
+  if (!node) return false;
+  // Text nodes / non-Element nodes don't have closest() — walk up via parentElement.
+  const el = node.nodeType === 1 ? node : node.parentElement;
+  if (!el || !el.closest) return false;
+  return !!el.closest(`#${HUD_OVERLAY_ID}`);
+}
+
+function isHudOverlayNode(node) {
+  return node && node.nodeType === 1 && node.id === HUD_OVERLAY_ID;
+}
+
   // -- Element discovery (Now with Shadow DOM piercing) -------------------
 
   const INTERACTIVE_SELECTOR = [
@@ -293,10 +307,34 @@
     lastGoal = goal || null;
     if (observer) return;
 
-    observer = new MutationObserver(() => {
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => rescanAndNotify(lastGoal), debounceMs);
-    });
+    observer = new MutationObserver((mutationsList) => {
+  const allMutationsAreHudRelated = mutationsList.every((mutation) => {
+    // Case A: attribute/characterData change happened on or inside the overlay.
+    if (isInsideHudOverlay(mutation.target)) return true;
+
+    // Case B: childList change — check whether every added/removed node
+    // is the overlay itself or lives inside it.
+    if (mutation.type === 'childList') {
+      const addedAreHud = Array.from(mutation.addedNodes).every(
+        (n) => isHudOverlayNode(n) || isInsideHudOverlay(n)
+      );
+      const removedAreHud = Array.from(mutation.removedNodes).every(
+        (n) => isHudOverlayNode(n) || isInsideHudOverlay(n)
+      );
+      // Also: if the mutation.target itself is inside the overlay (e.g.
+      // overlay's own children being appended), treat as HUD-related too.
+      const targetIsHud = isInsideHudOverlay(mutation.target);
+      return (addedAreHud && removedAreHud) || targetIsHud;
+    }
+
+    return false;
+  });
+
+  if (allMutationsAreHudRelated) return; // ignore our own HUD churn entirely
+
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => rescanAndNotify(lastGoal), debounceMs);
+});
 
     observer.observe(global.document.documentElement, {
       childList: true, subtree: true, attributes: true,
