@@ -330,8 +330,11 @@ function isHudOverlayNode(node) {
     return false;
   });
 
-  if (allMutationsAreHudRelated) return; // ignore our own HUD churn entirely
+    if (allMutationsAreHudRelated) return; // ignore our own HUD churn entirely
 
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => rescanAndNotify(lastGoal), debounceMs);
+});
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => rescanAndNotify(lastGoal), debounceMs);
 });
