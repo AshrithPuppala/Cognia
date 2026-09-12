@@ -21,13 +21,34 @@ const SYSTEM_PROMPT = fs.readFileSync(
  * @returns {Promise<object>} shape matching the GuidanceAction fields the LLM is responsible for
  */
 async function getGuidanceFromLLM(pageState, supportLevel) {
+  // Keep validIds reading from the FULL list — this is the safety check
+  // against the LLM inventing an id, and must not be narrowed.
   const validIds = (pageState.elements || []).map((el) => el.id);
+
+  // Only send elements that are actually visible/interactable/unobscured —
+  // cuts token count drastically (89 elements -> ~23 on a real page) and
+  // is required to stay under Groq's 8000 TPM limit, not just an
+  // optimization.
+  const relevantElements = (pageState.elements || []).filter(
+    (el) => el.visible && el.interactable && !el.obscured
+  );
+
+  // Strip fields the LLM doesn't need (pixel coordinates, tag names, full
+  // state object) — the HUD needs rect, the reasoner doesn't.
+  const trimmedElements = relevantElements.map((el) => ({
+    id: el.id,
+    role: el.role,
+    label: el.label || el.placeholder || null,
+    filled: el.state.filled,
+    required: el.state.required,
+    checked: el.state.checked,
+  }));
 
   const userContent = JSON.stringify({
     goal: pageState.goal,
     accessibility_profile: pageState.accessibility_profile,
     support_level: supportLevel,
-    elements: pageState.elements,
+    elements: trimmedElements,
     history: pageState.history || [],
   });
 
