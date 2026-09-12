@@ -1,14 +1,9 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const mongoose = require('mongoose');
 
-// Try requiring capitalized 'Application', fallback to lowercase if necessary
-let Application;
-try {
-  Application = require('./models/application');
-} catch (e) {
-  Application = require('./models/application');
-}
+const Application = require('./models/application');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -24,22 +19,30 @@ mongoose.connect(MONGO_URI)
 
 app.use(express.json());
 
-// Serve static frontend assets from both possible locations (backend/public or project root)
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.static(path.join(__dirname, '..')));
+// ==========================================================
+// Single source of truth for static frontend assets.
+// Previously this served BOTH backend/public and the project
+// root, with backend/public taking priority. That meant an old
+// index.html sitting in backend/public (with stale popup markup)
+// was always served instead of the updated root index.html —
+// even after editing and pushing the root file. Only one
+// directory is served now, so there is no ambiguity about which
+// file is live.
+//
+// Point this at wherever your real, up-to-date index.html lives.
+// If your frontend is in the project root, use '..' as below.
+// If it's in backend/public, change this to 'public' instead —
+// but make sure the OTHER copy is deleted so it can't go stale.
+// ==========================================================
+const FRONTEND_DIR = path.join(__dirname, '..','test-site');
+app.use(express.static(FRONTEND_DIR));
 
-// Fallback GET / route to serve index.html directly if not automatically resolved
 app.get('/', (req, res) => {
-  const rootIndex = path.join(__dirname, '..', 'index.html');
-  const publicIndex = path.join(__dirname, 'public', 'index.html');
-  
-  const fs = require('fs');
-  if (fs.existsSync(publicIndex)) {
-    return res.sendFile(publicIndex);
-  } else if (fs.existsSync(rootIndex)) {
-    return res.sendFile(rootIndex);
+  const indexPath = path.join(FRONTEND_DIR, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath);
   }
-  res.send('Cognia Server Running. Please place index.html in the project root or backend/public directory.');
+  res.send('Cognia Server Running. Please place index.html in the project root.');
 });
 
 // Mock RTO status feed

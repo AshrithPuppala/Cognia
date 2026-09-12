@@ -109,12 +109,6 @@
     padding: 8px 0; font-size: 13px; font-weight: 600; color: #d84315;
   }
 
-  /* ===== Session expiring flasher ===== */
-  .session-flash {
-    background: var(--gov-red); color: var(--surface); text-align: center; padding: 8px;
-    font-weight: 700; font-size: 13px; animation: blink 1.5s infinite; letter-spacing: 0.5px;
-  }
-
   /* ===== Layout: 3 column ===== */
   .layout { display: flex; max-width: 1400px; margin: 24px auto; gap: 24px; padding: 0 16px; align-items: flex-start; }
 
@@ -274,12 +268,7 @@
   .error { background: #fdeded; border: 1px solid #ffcdd2; color: #5f2120; display: block !important; }
   .loading { background: #e3f2fd; border: 1px solid #bbdefb; color: #0d47a1; display: block !important; }
 
-  /* Modal & Toast */
-  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15, 61, 115, 0.8); z-index: 3000; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
-  .modal-overlay.visible { display: flex; }
-  .modal-box { background: var(--surface); width: 400px; border-radius: 8px; padding: 32px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
-  .modal-box h2 { color: var(--gov-red); font-size: 18px; margin: 0 0 12px 0; }
-  
+  /* Toast */
   #stubToast { position: fixed; bottom: 24px; right: 24px; background: var(--text-main); color: var(--surface); padding: 12px 24px; font-size: 13px; border-radius: 4px; box-shadow: var(--shadow-md); display: none; z-index: 4000; }
   #stubToast.visible { display: block; animation: slideUp 0.3s ease-out forwards; }
   @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -383,8 +372,6 @@
 <div class="notice-bar">
   <marquee id="noticeMarquee" behavior="scroll" direction="left">Loading notices…</marquee>
 </div>
-
-<div class="session-flash" id="sessionFlash">⚠ SESSION EXPIRING IN <span id="sessionCountdown">04:58</span> — SAVE YOUR PROGRESS NOW ⚠</div>
 
 <div class="layout">
 
@@ -1009,16 +996,6 @@
   This is a simulated portal built for testing purposes (Cognia obstacle course). Not affiliated with any government body.
 </footer>
 
-<!-- Interrupt modal -->
-<div class="modal-overlay" id="interruptModal">
-  <div class="modal-box">
-    <h2>Session Extension Available</h2>
-    <p>Your session is about to expire. Would you like to extend it by 10 minutes to continue your application?</p>
-    <button type="button" class="gov-btn primary" id="extendSessionBtn">Extend Session</button>
-    <button type="button" class="gov-btn" id="dismissModalBtn">Dismiss</button>
-  </div>
-</div>
-
 <script>
 (function () {
   'use strict';
@@ -1034,32 +1011,6 @@
     .catch(() => {
       document.getElementById('noticeMarquee').textContent = 'URGENT NOTICES: Unable to load live notices.';
     });
-
-  // ==========================================================
-  // Session countdown (cosmetic)
-  // ==========================================================
-  let remaining = 298;
-  const countdownEl = document.getElementById('sessionCountdown');
-  setInterval(() => {
-    remaining = Math.max(0, remaining - 1);
-    const m = String(Math.floor(remaining / 60)).padStart(2, '0');
-    const s = String(remaining % 60).padStart(2, '0');
-    countdownEl.textContent = `${m}:${s}`;
-  }, 1000);
-
-  // ==========================================================
-  // Interrupt modal: fires once, 6s after load
-  // ==========================================================
-  setTimeout(() => {
-    document.getElementById('interruptModal').classList.add('visible');
-  }, 6000);
-  document.getElementById('extendSessionBtn').addEventListener('click', () => {
-    remaining = 298;
-    document.getElementById('interruptModal').classList.remove('visible');
-  });
-  document.getElementById('dismissModalBtn').addEventListener('click', () => {
-    document.getElementById('interruptModal').classList.remove('visible');
-  });
 
   // ==========================================================
   // Custom switch elements (role="switch")

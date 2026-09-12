@@ -240,7 +240,52 @@
       interactable: visible && !obscured && !state.disabled && rect.width > 0 && rect.height > 0
     };
   }
+  // -- Element Targeting & Fuzzy Matching -----------------------------------
 
+  function findFieldFuzzy(keywords) {
+    const lowerKeywords = keywords.map(kw => kw.toLowerCase());
+    const doc = global.document || document;
+
+    const matchesKeyword = (text) => {
+      if (!text) return false;
+      const lowerText = text.toLowerCase();
+      return lowerKeywords.some(kw => lowerText.includes(kw));
+    };
+
+    // Strategy 1: Standard 'autocomplete' attribute
+    for (const kw of lowerKeywords) {
+      const autoEl = doc.querySelector(`input[autocomplete="${CSS.escape(kw)}"]`);
+      if (autoEl) return autoEl;
+    }
+
+    // Strategy 2 & 3: Labels (<label for="..."> and wrapping <label>...<input></label>)
+    const labels = doc.querySelectorAll('label');
+    for (const label of labels) {
+      if (matchesKeyword(label.textContent)) {
+        const forId = label.getAttribute('for');
+        if (forId) {
+          const input = doc.getElementById(forId);
+          if (input) return input;
+        }
+        
+        const wrappedInput = label.querySelector('input, select, textarea');
+        if (wrappedInput) return wrappedInput;
+      }
+    }
+
+    // Strategy 4: Placeholder and Aria-Label text
+    const inputs = doc.querySelectorAll('input, select, textarea');
+    for (const input of inputs) {
+      if (
+        matchesKeyword(input.getAttribute('placeholder')) || 
+        matchesKeyword(input.getAttribute('aria-label'))
+      ) {
+        return input;
+      }
+    }
+
+    return null;
+  }
   // -- Public API: getPageState -------------------------------------------
 
   function getPageState(goal) {
@@ -348,7 +393,7 @@
 
   // -- Expose -------------------------------------------------------------
 
-  const PageMapper = { getPageState, startWatching, stopWatching, onPageState };
+  const PageMapper = { getPageState, startWatching, stopWatching, onPageState, findFieldFuzzy };
   global.Cognia = global.Cognia || {};
   global.Cognia.PageMapper = PageMapper;
   if (typeof module !== 'undefined' && module.exports) module.exports = PageMapper;
