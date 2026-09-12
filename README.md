@@ -7,14 +7,6 @@ Cognia is a Chrome extension that helps users (older adults, people with visual/
 **Track:** Making Access Easier
 **Team:** COMMITment Issues — PES University, Bengaluru
 
-| Name | SRN/USN |
-|---|---|
-| Aryan Srivastava | PES1UG25EC051 |
-| Ashrith Puppala | PES1UG25EC358 |
-| Felicia Andrew | PES1UG25EC092 |
-| Keerthana K | PES1UG25CS727 |
-
----
 
 ## 1. How the whole system fits together
 
@@ -82,7 +74,7 @@ cognia/
 
 ## 3. Roles — read your section, only your section, in full
 
-### PERSON 1 — Page Mapper (suggested: Aryan)
+### PERSON 1 — Page Mapper (Aryan)
 **Owns:** `extension/content-scripts/page-mapper.js`, `test-site/index.html`
 
 **What this module does:** Runs inside the browser tab as a content script. It scans the live webpage's DOM and produces a `PageState` JSON object (see `CONTRACTS.md`) describing what's on the page right now — every interactive element (inputs, buttons, dropdowns), its role, its label, whether it's filled in, and where it sits on screen.
@@ -104,7 +96,7 @@ cognia/
 
 ---
 
-### PERSON 2 — Backend + AI Task Reasoner (suggested: Keerthana)
+### PERSON 2 — Backend + AI Task Reasoner (Ashrith)
 **Owns:** the entire `backend/` folder
 
 **What this module does:** A small Node/Express server with one important endpoint, `POST /reason`, that takes a `PageState` JSON body and returns a `GuidanceAction` JSON response (see `CONTRACTS.md`). Internally it calls an LLM and forces it to reason about what the user should do next, then structures that reasoning into the exact `GuidanceAction` shape.
@@ -128,7 +120,7 @@ cognia/
 
 ---
 
-### PERSON 3 — Cognitive HUD / Rendering (suggested: Felicia)
+### PERSON 3 — Cognitive HUD / Rendering (Felicia)
 **Owns:** `extension/content-scripts/hud-overlay.js`, `extension/styles/hud.css`
 
 **What this module does:** Takes a `GuidanceAction` JSON and visually transforms the page — dims everything except the target element, draws a spotlight/highlight around it, and shows the instruction text near it. This is the part that makes the demo look impressive, so give it real attention.
@@ -150,7 +142,7 @@ cognia/
 
 ---
 
-### PERSON 4 — Orchestration, PII Guard, and Intent UI (suggested: Ashrith)
+### PERSON 4 — Orchestration, PII Guard, and Intent UI (Keerthana)
 **Owns:** `extension/background/service-worker.js`, `extension/content-scripts/pii-guard.js`, `extension/popup/`
 
 **What this module does:** Three related jobs, all about wiring things together safely: (a) the popup where the user types/speaks their goal, (b) stripping sensitive data out of the PageState before it ever leaves the browser, and (c) the loop that calls Page Mapper → PII Guard → Backend → HUD, in order, and re-triggers on user action. **This role is the integrator by design** — you'll have a working (mocked) end-to-end loop before anyone else's real module is finished, so that swapping in real modules later is a one-line change each time, not a scramble at hour 20.
