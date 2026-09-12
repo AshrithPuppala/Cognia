@@ -21,21 +21,16 @@ const SYSTEM_PROMPT = fs.readFileSync(
  * @returns {Promise<object>} shape matching the GuidanceAction fields the LLM is responsible for
  */
 async function getGuidanceFromLLM(pageState, supportLevel) {
-  // Keep validIds reading from the FULL list — this is the safety check
-  // against the LLM inventing an id, and must not be narrowed.
   const validIds = (pageState.elements || []).map((el) => el.id);
 
-  // Only send elements that are actually visible/interactable/unobscured —
-  // cuts token count drastically (89 elements -> ~23 on a real page) and
-  // is required to stay under Groq's 8000 TPM limit, not just an
-  // optimization.
   const relevantElements = (pageState.elements || []).filter(
     (el) => el.visible && el.interactable && !el.obscured
   );
 
-  // Strip fields the LLM doesn't need (pixel coordinates, tag names, full
-  // state object) — the HUD needs rect, the reasoner doesn't.
-  const trimmedElements = relevantElements.map((el) => ({
+  const MAX_ELEMENTS = 40;
+  const cappedElements = relevantElements.slice(0, MAX_ELEMENTS);
+
+  const trimmedElements = cappedElements.map((el) => ({
     id: el.id,
     role: el.role,
     label: el.label || el.placeholder || null,
@@ -51,6 +46,8 @@ async function getGuidanceFromLLM(pageState, supportLevel) {
     elements: trimmedElements,
     history: pageState.history || [],
   });
+
+  console.log(`[llm-client] sending ${trimmedElements.length} elements, ~${userContent.length} chars`);
 
   const body = {
     model: MODEL,
@@ -93,7 +90,6 @@ async function getGuidanceFromLLM(pageState, supportLevel) {
     return buildFallback(pageState, validIds);
   }
 
-  // Defensive check: never trust an element id the model invented.
   if (!validIds.includes(parsed.target_element_id)) {
     console.warn(
       `LLM returned unknown target_element_id "${parsed.target_element_id}", falling back`
@@ -109,7 +105,6 @@ async function getGuidanceFromLLM(pageState, supportLevel) {
     dimAllExcept: [parsed.target_element_id],
   };
 }
-
 /**
  * Safe fallback used when the Groq call fails, times out, or returns
  * something invalid. Picks the first unfilled, interactable element it can
