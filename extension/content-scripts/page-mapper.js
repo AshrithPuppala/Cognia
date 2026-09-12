@@ -307,28 +307,33 @@ function isHudOverlayNode(node) {
     lastGoal = goal || null;
     if (observer) return;
 
-    observer = new MutationObserver((mutationsList) => {
-  const allMutationsAreHudRelated = mutationsList.every((mutation) => {
-    // Case A: attribute/characterData change happened on or inside the overlay.
-    if (isInsideHudOverlay(mutation.target)) return true;
+        observer = new MutationObserver((mutationsList) => {
+      const allMutationsAreHudRelated = mutationsList.every((mutation) => {
+        if (isInsideHudOverlay(mutation.target)) return true;
 
-    // Case B: childList change — check whether every added/removed node
-    // is the overlay itself or lives inside it.
-    if (mutation.type === 'childList') {
-      const addedAreHud = Array.from(mutation.addedNodes).every(
-        (n) => isHudOverlayNode(n) || isInsideHudOverlay(n)
-      );
-      const removedAreHud = Array.from(mutation.removedNodes).every(
-        (n) => isHudOverlayNode(n) || isInsideHudOverlay(n)
-      );
-      // Also: if the mutation.target itself is inside the overlay (e.g.
-      // overlay's own children being appended), treat as HUD-related too.
-      const targetIsHud = isInsideHudOverlay(mutation.target);
-      return (addedAreHud && removedAreHud) || targetIsHud;
-    }
+        if (mutation.type === 'childList') {
+          const addedAreHud = Array.from(mutation.addedNodes).every(
+            (n) => isHudOverlayNode(n) || isInsideHudOverlay(n)
+          );
+          const removedAreHud = Array.from(mutation.removedNodes).every(
+            (n) => isHudOverlayNode(n) || isInsideHudOverlay(n)
+          );
+          const targetIsHud = isInsideHudOverlay(mutation.target);
+          return (addedAreHud && removedAreHud) || targetIsHud;
+        }
 
-    return false;
-  });
+        return false;
+      });
+
+      if (allMutationsAreHudRelated) {
+        console.log('[cognia] ignoring HUD-only mutation batch');
+        return;
+      }
+      console.log('[cognia] rescan triggered by non-HUD mutation', mutationsList);
+
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => rescanAndNotify(lastGoal), debounceMs);
+    });
 
     if (allMutationsAreHudRelated) return; // ignore our own HUD churn entirely
 
