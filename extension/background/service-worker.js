@@ -1,43 +1,39 @@
 // extension/background/service-worker.js
 //
 // Orchestration loop: popup -> Page Mapper -> PII Guard -> Backend /reason -> HUD.
-// Rewritten to use the real PageState schema (shared/schemas/page-state.schema.json)
-// and the real backend route, instead of raw HTML strings.
+// Uses the real PageState schema (shared/schemas/page-state.schema.json) and the
+// real backend route. Also wires up the continuous "Verify & Re-plan" loop:
+// Page Mapper's startWatching() fires a MutationObserver whenever the page
+// changes and pushes a fresh PageState to us via
+// chrome.runtime.sendMessage({type: 'cognia:page-state', state}) -- we listen
+// for that here and re-run reasoning + HUD automatically, so the user never
+// has to manually retrigger anything.
 
-// Simple per-tab interaction history, used for frustration/support_level
-// escalation on the backend. Not persisted across browser restarts.
 const tabHistory = new Map();
+// Remembers each tab's current goal/profile so an auto-pushed page-state
+// update (from the MutationObserver) can be reasoned about without asking
+// the user again.
+const tabSessions = new Map();
 
 function getHistory(tabId) {
   if (!tabHistory.has(tabId)) tabHistory.set(tabId, []);
   return tabHistory.get(tabId);
 }
 
-async function runCogniaLoop(tabId, goal, accessibilityProfile) {
-  // 1. Ask Person 1's Page Mapper (already listening for this message type
-  //    in page-mapper.js) for the real, structured PageState.
-  const pageState = await chrome.tabs.sendMessage(tabId, {
-    type: 'cognia:request-page-state',
-    goal,
-  });
-
-  if (!pageState || !pageState.elements) {
-    console.error('[Cognia orchestrator] Page Mapper did not return a valid PageState', pageState);
-    return;
-  }
-
-  // 2. Attach the fields the backend needs that Page Mapper doesn't produce.
+/**
+ * Runs PII redaction -> backend /reason -> HUD render for a PageState we
+ * already have in hand (either freshly requested, or pushed to us by
+ * Page Mapper's MutationObserver).
+ */
+async function guideFromPageState(tabId, pageState, accessibilityProfile) {
   pageState.accessibility_profile = accessibilityProfile;
   pageState.history = getHistory(tabId);
 
-  // 3. Ask the PII Guard content script to redact sensitive values in place.
-  //    Operates on the structured PageState, not raw HTML.
   const redactedPageState = await chrome.tabs.sendMessage(tabId, {
     type: 'cognia:redact-page-state',
     pageState,
   });
 
-  // 4. Call the real backend endpoint.
   let guidanceAction;
   try {
     const response = await fetch('http://localhost:3000/reason', {
@@ -51,38 +47,92 @@ async function runCogniaLoop(tabId, goal, accessibilityProfile) {
     return;
   }
 
-  // 5. Record this step in history so future calls can detect repeated
-  //    attempts / escalate support_level.
   getHistory(tabId).push({ action: guidanceAction.target_element_id, result: 'shown' });
 
-  // 6. Hand the GuidanceAction to Person 3's HUD content script.
-  //    NOTE: confirm hud-overlay.js actually listens for this message shape
-  //    (action: "UPDATE_HUD") — if it instead expects a direct call to
-  //    window.renderHUD(), this message needs to change to match.
-  chrome.tabs.sendMessage(tabId, { action: 'UPDATE_HUD', data: guidanceAction });
+  // hud-overlay.js exposes window.renderHUD(guidanceAction) for the
+  // orchestrator to call directly -- it does not listen for a runtime message.
+  await chrome.scripting.executeScript({
+    target: { tabId },
+    func: (action) => {
+      if (typeof window.renderHUD === 'function') {
+        window.renderHUD(action);
+      } else {
+        console.error('[Cognia orchestrator] window.renderHUD is not defined on this page yet.');
+      }
+    },
+    args: [guidanceAction],
+  });
+}
+
+/**
+ * Starts a session: gets the first PageState, runs guidance, AND starts
+ * Page Mapper's live watcher so future page changes (the user filling in a
+ * field, a modal opening, etc.) automatically trigger a fresh
+ * redact -> reason -> render cycle with no further user action needed.
+ */
+async function startSession(tabId, goal, accessibilityProfile) {
+  tabHistory.set(tabId, []);
+  tabSessions.set(tabId, { goal, accessibilityProfile });
+
+  // Start Page Mapper's MutationObserver-driven watcher in the page itself.
+  // Its internal notify() already calls
+  // chrome.runtime.sendMessage({type: 'cognia:page-state', state}) on every
+  // change AND on this initial call, so we don't need a separate first
+  // request -- the watcher's first scan IS our first PageState.
+  await chrome.scripting.executeScript({
+    target: { tabId },
+    func: (g) => {
+      if (window.Cognia && window.Cognia.PageMapper && window.Cognia.PageMapper.startWatching) {
+        window.Cognia.PageMapper.startWatching(g, { debounceMs: 400 });
+      } else {
+        console.error('[Cognia orchestrator] Cognia.PageMapper.startWatching is not available.');
+      }
+    },
+    args: [goal],
+  });
 }
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'START_COGNIA_SESSION') {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const activeTabId = tabs[0].id;
-      tabHistory.set(activeTabId, []); // fresh history for a new session
-      runCogniaLoop(activeTabId, request.goal, request.accessibilityProfile).catch((err) =>
-        console.error('[Cognia orchestrator] loop failed:', err)
+      startSession(activeTabId, request.goal, request.accessibilityProfile).catch((err) =>
+        console.error('[Cognia orchestrator] failed to start session:', err)
       );
     });
-    return true;
+    return false;
   }
 
-  // Re-run the loop (e.g. triggered by Page Mapper's MutationObserver
-  // noticing the user filled something in) using the same goal/profile.
-  if (request.action === 'COGNIA_RESCAN') {
+  // Page Mapper pushes a fresh PageState here every time its
+  // MutationObserver fires (user typed something, a field changed, a modal
+  // opened, etc.) -- this is what makes the HUD update live without the
+  // user re-running anything manually.
+  if (request.type === 'cognia:page-state' && sender.tab) {
+    const tabId = sender.tab.id;
+    const session = tabSessions.get(tabId);
+    if (!session) {
+      // Page changed before a session was started via the popup -- ignore.
+      return false;
+    }
+    guideFromPageState(tabId, request.state, session.accessibilityProfile).catch((err) =>
+      console.error('[Cognia orchestrator] auto re-plan failed:', err)
+    );
+    return false;
+  }
+
+  if (request.action === 'STOP_COGNIA_SESSION') {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const activeTabId = tabs[0].id;
-      runCogniaLoop(activeTabId, request.goal, request.accessibilityProfile).catch((err) =>
-        console.error('[Cognia orchestrator] rescan failed:', err)
-      );
+      tabSessions.delete(activeTabId);
+      chrome.scripting.executeScript({
+        target: { tabId: activeTabId },
+        func: () => {
+          if (window.Cognia && window.Cognia.PageMapper && window.Cognia.PageMapper.stopWatching) {
+            window.Cognia.PageMapper.stopWatching();
+          }
+        },
+      });
     });
-    return true;
+    return false;
   }
 });
